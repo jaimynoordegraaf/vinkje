@@ -3576,7 +3576,7 @@ create policy materials_weghalen on materials
 -- De opslag bestaat alleen op een echt Supabase-project. In de tests draait
 -- Postgres zonder dat schema, en dan slaat dit blok zichzelf over.
 
-do $
+do $$
 begin
   if not exists (select 1 from information_schema.schemata where schema_name = 'storage') then
     raise notice 'Geen storage-schema: opslagregels overgeslagen (dat hoort zo buiten Supabase).';
@@ -3647,7 +3647,7 @@ begin
       )
   $p$;
 end;
-$;
+$$;
 
 -- ============================================================ 010-eisen.sql
 
