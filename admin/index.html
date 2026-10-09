@@ -149,6 +149,15 @@
          color: var(--dim); }
   .opt.goed { background: var(--good); color: var(--card); font-weight: 600; }
   .merk { font-size: 11px; color: var(--dim); margin-left: 8px; }
+
+  /* Een eis in de catalogus, met zijn toelichting uit het handboek en de
+     onderdelen eronder. Die onderdelen zaten in een eigen klapper met
+     "4 onderdelen" erop; het zijn losse woorden, die passen gewoon. */
+  .eis { padding: 11px 0; border-top: 1px solid var(--border); }
+  .eis:first-of-type { border-top: none; }
+  .eis .nr { color: var(--dim); }
+  .eis .toel { font-size: 13px; color: var(--dim); margin-top: 3px; }
+  .ond { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px; }
   .keuzeregel {
     display: flex; justify-content: space-between; gap: 12px; width: 100%;
     text-align: left; font: inherit; cursor: pointer; padding: 10px 12px;
@@ -1555,129 +1564,192 @@ function crewCard(crew, members, aboard) {
 //   eigen       van deze groep. Een insigne, of de verkorte eisen van een kamp.
 //               Hier volledig in te richten; niemand buiten de groep ziet hem.
 
+// Welke lijst open staat en of je naar praktijk of theorie kijkt.
+let catalogusGekozen = null;
+let catalogusKind = 'praktijk';
+
 async function renderCatalogus(view) {
   view.append(el('h2', {}, "Diploma's en eisen"));
 
   const [disciplines, diplomas] = await Promise.all([
-    check(await db.from('disciplines').select('*').order('sort_order')),
-    check(await db.from('diplomas').select('*').order('sort_order')),
+    run(async () => check(await db.from('disciplines').select('*').order('sort_order'))),
+    run(async () => check(await db.from('diplomas').select('*').order('sort_order'))),
   ]);
+
+  // Hoeveel eisen per lijst, voor het bijschrift links. Eén vraag voor alles,
+  // en alleen de eisen zelf -- onderdelen tellen niet als eis.
+  const tellingen = {};
+  for (const r of await run(async () => check(
+    await db.from('requirements').select('diploma_id, kind, parent_id')))) {
+    if (r.parent_id) continue;
+    const t = (tellingen[r.diploma_id] ??= { praktijk: 0, theorie: 0 });
+    t[r.kind] += 1;
+  }
+  const bijschrift = (id) => {
+    const t = tellingen[id];
+    if (!t || t.praktijk + t.theorie === 0) return 'leeg';
+    return t.praktijk + ' pr · ' + t.theorie + ' th';
+  };
   const eigen = diplomas.filter((d) => d.group_id);
   const landelijk = diplomas.filter((d) => !d.group_id);
 
-  // ---- eigen lijsten
-  view.append(el('h3', {}, 'Eigen lijsten'));
-  view.append(el('div', { class: 'note' },
-    'Lijsten van onze groep, naast de landelijke eisen. Ze tellen en tekenen af als elk ander diploma, ' +
-    'maar alleen wij zien ze en het opnieuw laden van de landelijke eisen raakt ze niet.'));
-
-  const eigenDoos = el('div', { class: 'card' });
-  if (eigen.length === 0) {
-    eigenDoos.append(el('p', { class: 'dim' }, 'Nog geen eigen lijst.'));
+  if (!diplomas.some((d) => d.id === catalogusGekozen)) {
+    catalogusGekozen = (eigen[0] ?? landelijk[0])?.id ?? null;
   }
-  for (const dip of eigen) eigenDoos.append(eigenLijstBlock(dip));
+  const gekozen = diplomas.find((d) => d.id === catalogusGekozen);
 
-  const nieuweNaam = field('Naam', '', {});
+  const raster = el('div', { class: 'md' });
+
+  // ---- links: alle vijftien lijsten in beeld, altijd
+  const lijst = el('div', { class: 'lijst' });
+  const knop = (dip, bij) => el('button', {
+    class: 'lijstknop' + (dip.id === catalogusGekozen ? ' aan' : ''),
+    onclick: () => { catalogusGekozen = dip.id; render(); },
+  }, el('span', {}, dip.name), el('small', {}, bij));
+
+  lijst.append(el('div', { class: 'lijstkop' }, 'Eigen lijsten'));
+  if (eigen.length === 0) {
+    lijst.append(el('div', { class: 'dim', style: 'font-size:12px; margin:0 0 4px 11px' },
+      'Nog geen eigen lijst.'));
+  }
+  for (const dip of eigen) lijst.append(knop(dip, bijschrift(dip.id)));
+  lijst.append(nieuweLijstRij());
+
+  for (const d of disciplines) {
+    const hier = landelijk.filter((x) => x.discipline_id === d.id);
+    if (hier.length === 0) continue;
+    lijst.append(el('div', { class: 'lijstkop' },
+      d.name + (d.subtitle ? ' — ' + d.subtitle : '')));
+    for (const dip of hier) lijst.append(knop(dip, bijschrift(dip.id)));
+  }
+  raster.append(lijst);
+
+  raster.append(gekozen
+    ? await diplomaPaneel(gekozen)
+    : el('div', { class: 'card' }, el('p', { class: 'dim' }, 'Nog geen lijsten.')));
+  view.append(raster);
+}
+
+function nieuweLijstRij() {
+  const naam = field('Naam', '', {});
   const soort = el('select', {},
     el('option', { value: 'diploma' }, 'Diploma'),
     el('option', { value: 'insigne' }, 'Insigne'));
-  eigenDoos.append(el('details', {}, el('summary', {}, 'Lege lijst beginnen'),
-    el('div', { class: 'row', style: 'margin-top:10px' }, nieuweNaam.wrap, soort,
+  return el('details', { style: 'margin-top:6px' }, el('summary', {}, '+ Lege lijst beginnen'),
+    el('div', { class: 'row', style: 'margin-top:10px' }, naam.wrap, soort,
       el('button', {
         class: 'btn',
         onclick: async () => {
-          const naam = nieuweNaam.input.value.trim();
-          if (naam.length < 2) return;
+          const n = naam.input.value.trim();
+          if (n.length < 2) return;
           await run(async () => check(await db.rpc('create_own_list', {
-            p_group: group.id, p_name: naam, p_kind: soort.value, p_summary: null,
+            p_group: group.id, p_name: n, p_kind: soort.value, p_summary: null,
           })), 'Lijst gemaakt');
           render();
         },
-      }, 'Maken'))));
-  view.append(eigenDoos);
+      }, 'Maken')));
+}
 
-  // ---- landelijk
-  view.append(el('h3', {}, 'Landelijk'));
-  view.append(el('div', { class: 'note' },
-    'Vastgesteld door de Watersport Academy en voor iedere groep gelijk, dus hier alleen te lezen. ' +
-    'Wil je een kortere versie voor een kamp, maak er dan een eigen kopie van — schrappen in die kopie ' +
-    'laat het origineel heel. Moet de landelijke lijst zelf kloppen, pas dan supabase/010-eisen.sql aan.'));
+/**
+ * Eén diploma, helemaal in beeld.
+ *
+ * Verving het stapelen van klappers: discipline, dan diploma, dan praktijk en
+ * theorie onder elkaar, dan per eis nog een klapper voor de onderdelen. Vier
+ * niveaus diep, en bij elke stap raakte je kwijt waar je was. Nu kies je links
+ * en lees je rechts; springen naar een ander diploma is één klik.
+ */
+async function diplomaPaneel(dip) {
+  const eigen = Boolean(dip.group_id);
+  const kaart = el('div', { class: 'card' });
 
-  for (const d of disciplines) {
-    const box = el('div', { class: 'card' });
-    box.append(el('h4', {}, d.name + (d.subtitle ? ` — ${d.subtitle}` : '')));
-    for (const dip of landelijk.filter((x) => x.discipline_id === d.id)) {
-      box.append(landelijkBlock(dip));
-    }
-    view.append(box);
+  kaart.append(el('div', { class: 'groepkop' },
+    el('b', {}, dip.name + (dip.level_label ? ' (' + dip.level_label + ')' : '')),
+    el('span', { class: 'dim' }, eigen
+      ? (dip.kind === 'insigne' ? 'Eigen insigne' : 'Eigen lijst') + ' · van onze groep'
+      : 'Landelijk · alleen lezen')));
+
+  if (dip.summary) kaart.append(el('p', { class: 'dim', style: 'margin-top:4px' }, dip.summary));
+
+  const eisen = check(await db.from('requirements').select('*')
+    .eq('diploma_id', dip.id).order('kind').order('position'));
+  const vanSoort = (k) => eisen.filter((r) => r.kind === k && !r.parent_id);
+
+  const knoppen = el('div', { class: 'row', style: 'margin:12px 0 4px; flex-wrap:wrap' });
+  for (const k of ['praktijk', 'theorie']) {
+    const n = vanSoort(k).length;
+    knoppen.append(chip((k === 'praktijk' ? 'Praktijk ' : 'Theorie ') + n,
+      catalogusKind === k, () => { catalogusKind = k; render(); }));
   }
-}
+  knoppen.append(el('span', { style: 'flex:1' }));
+  if (!eigen) knoppen.append(kopieerKnop(dip));
+  kaart.append(knoppen);
 
-/** Een landelijke lijst: lezen, en desgewenst kopiëren. */
-function landelijkBlock(dip) {
-  const details = klapper(`diploma:${dip.id}`,
-    `${dip.name}${dip.level_label ? ` (${dip.level_label})` : ''}`);
-  const body = el('div', { style: 'margin-top:12px' }, el('p', { class: 'dim' }, 'Bezig met laden…'));
-  details.append(body);
+  if (eigen) kaart.append(eigenLijstKnoppen(dip));
 
-  details.addEventListener('toggle', async () => {
-    if (!details.open || details.dataset.loaded) return;
-    details.dataset.loaded = '1';
-    body.innerHTML = '';
+  const top = vanSoort(catalogusKind);
+  if (top.length === 0) {
+    kaart.append(el('p', { class: 'dim' },
+      'Geen ' + (catalogusKind === 'praktijk' ? 'praktijk' : 'theorie') + 'eisen.'));
+  }
 
-    const naam = field('Naam voor de kopie', `${dip.name} (kort)`, {});
-    body.append(el('div', { class: 'row' }, naam.wrap,
-      el('button', {
-        class: 'btn',
-        onclick: async () => {
-          await run(async () => check(await db.rpc('copy_list_to_group', {
-            p_group: group.id, p_source: dip.id,
-            p_name: naam.input.value.trim() || null, p_kind: 'diploma',
-          })), 'Gekopieerd naar je eigen lijsten');
-          render();
-        },
-      }, 'Kopiëren naar eigen lijst')));
-
-    const eisen = check(await db.from('requirements').select('*')
-      .eq('diploma_id', dip.id).order('kind').order('position'));
-
-    for (const kind of ['praktijk', 'theorie']) {
-      const top = eisen.filter((r) => r.kind === kind && !r.parent_id);
-      if (top.length === 0) continue;
-      body.append(el('h4', {}, kind === 'praktijk' ? 'Praktijk' : 'Theorie'));
-      const lijst = el('ol', { class: 'dim', style: 'margin:0 0 10px 18px' });
-      for (const eis of top) {
-        const parts = eisen.filter((r) => r.parent_id === eis.id);
-        lijst.append(el('li', {}, eis.title + (parts.length ? ` — ${parts.length} onderdelen` : '')));
+  for (const eis of top) {
+    const parts = eisen.filter((r) => r.parent_id === eis.id);
+    if (eigen) {
+      kaart.append(eigenEisBlock(eis, parts, top));
+    } else {
+      // De onderdelen zijn losse woorden -- knopen, commando's, termen. Die
+      // stonden in een eigen klapper met "4 onderdelen" erop; ze passen gewoon
+      // op het scherm.
+      const e = el('div', { class: 'eis' },
+        el('div', {}, el('span', { class: 'nr' }, eis.position + '. '), eis.title));
+      if (eis.detail) e.append(el('div', { class: 'toel' }, eis.detail));
+      if (parts.length) {
+        e.append(el('div', { class: 'ond' },
+          ...parts.map((p) => el('span', { class: 'naam' }, p.title))));
       }
-      body.append(lijst);
+      kaart.append(e);
     }
-  });
+  }
+  if (eigen) kaart.append(nieuweEis(dip.id, catalogusKind));
 
-  return details;
+  if (!eigen && dip.source) {
+    kaart.append(el('p', { class: 'dim', style: 'margin-top:14px' }, 'Bron: ' + dip.source));
+  }
+  if (!eigen) {
+    kaart.append(el('div', { class: 'note', style: 'margin-top:10px' },
+      'Vastgesteld door de Watersport Academy en voor iedere groep gelijk. Wil je een kortere ' +
+      'versie voor een kamp, maak er dan een eigen kopie van — schrappen in die kopie laat ' +
+      'het origineel heel. Moet de landelijke lijst zelf kloppen, pas dan supabase/010-eisen.sql aan.'));
+  }
+  return el('div', {}, kaart);
 }
 
-/** Een eigen lijst: alles mag. */
-function eigenLijstBlock(dip) {
-  const details = klapper(`diploma:${dip.id}`,
-    `${dip.name}${dip.kind === 'insigne' ? ' — insigne' : ''}`);
-  const body = el('div', { style: 'margin-top:12px' }, el('p', { class: 'dim' }, 'Bezig met laden…'));
-  details.append(body);
+function kopieerKnop(dip) {
+  return el('button', {
+    class: 'btn ghost',
+    onclick: async () => {
+      const naam = window.prompt('Naam voor de kopie:', dip.name + ' (kort)');
+      if (naam === null) return;
+      await run(async () => check(await db.rpc('copy_list_to_group', {
+        p_group: group.id, p_source: dip.id,
+        p_name: naam.trim() || null, p_kind: 'diploma',
+      })), 'Gekopieerd naar je eigen lijsten');
+      render();
+    },
+  }, 'Kopiëren naar eigen lijst');
+}
 
-  details.addEventListener('toggle', async () => {
-    if (!details.open || details.dataset.loaded) return;
-    details.dataset.loaded = '1';
-    body.innerHTML = '';
+function eigenLijstKnoppen(dip) {
+  const naam = field('Naam', dip.name, {});
+  const soort = el('select', {},
+    el('option', { value: 'diploma', selected: dip.kind === 'diploma' }, 'Diploma'),
+    el('option', { value: 'insigne', selected: dip.kind === 'insigne' }, 'Insigne'));
+  const samenvatting = field('Omschrijving', dip.summary ?? '', { multiline: true, wrapClass: 'grow' });
 
-    const naam = field('Naam', dip.name, {});
-    const soort = el('select', {},
-      el('option', { value: 'diploma', selected: dip.kind === 'diploma' }, 'Diploma'),
-      el('option', { value: 'insigne', selected: dip.kind === 'insigne' }, 'Insigne'));
-    const samenvatting = field('Omschrijving', dip.summary ?? '', { multiline: true, wrapClass: 'grow' });
-
-    body.append(el('div', { class: 'row' }, naam.wrap, soort));
-    body.append(el('div', { class: 'row', style: 'margin-top:10px' }, samenvatting.wrap));
-    body.append(el('div', { class: 'row', style: 'margin-top:10px' },
+  return el('details', { style: 'margin-bottom:10px' }, el('summary', {}, 'Lijst bewerken'),
+    el('div', { class: 'row', style: 'margin-top:10px' }, naam.wrap, soort),
+    el('div', { class: 'row', style: 'margin-top:10px' }, samenvatting.wrap),
+    el('div', { class: 'row', style: 'margin-top:10px' },
       el('button', {
         class: 'btn ghost',
         onclick: () => run(async () => check(await db.rpc('update_own_list', {
@@ -1690,24 +1762,10 @@ function eigenLijstBlock(dip) {
         onclick: async () => {
           if (!confirmed(`${dip.name} verwijderen?\n\nAlle eisen en onderdelen gaan mee. Werkt er nog iemand aan deze lijst, dan weigert de database het.`)) return;
           await run(async () => check(await db.rpc('delete_own_list', { p_diploma: dip.id })), 'Verwijderd');
+          catalogusGekozen = null;
           render();
         },
       }, 'Lijst verwijderen')));
-
-    const eisen = check(await db.from('requirements').select('*')
-      .eq('diploma_id', dip.id).order('kind').order('position'));
-
-    for (const kind of ['praktijk', 'theorie']) {
-      body.append(el('h4', {}, kind === 'praktijk' ? 'Praktijk' : 'Theorie'));
-      const top = eisen.filter((r) => r.kind === kind && !r.parent_id);
-      for (const eis of top) {
-        body.append(eigenEisBlock(eis, eisen.filter((r) => r.parent_id === eis.id), top));
-      }
-      body.append(nieuweEis(dip.id, kind));
-    }
-  });
-
-  return details;
 }
 
 function eigenEisBlock(eis, parts, buren) {
