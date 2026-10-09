@@ -117,6 +117,38 @@
   .celbalk > i.onderweg { background: var(--warn); }
   .celcijfer { font-size: 12px; color: var(--dim); }
   .celcijfer.klaar { color: var(--good); font-weight: 600; }
+
+  /* Links kiezen, rechts lezen. Verving het stapelen van klappers: daar raakte
+     je kwijt waar je was zodra je iets anders opensloeg. */
+  .md { display: grid; grid-template-columns: 250px 1fr; gap: 18px; align-items: start; }
+  @media (max-width: 760px) { .md { grid-template-columns: 1fr; } }
+  .lijst { display: flex; flex-direction: column; gap: 4px; }
+  .lijstknop {
+    text-align: left; font: inherit; cursor: pointer; padding: 9px 11px;
+    border: 1px solid transparent; border-radius: 8px; background: transparent;
+    color: var(--text); display: flex; justify-content: space-between; gap: 10px;
+    align-items: baseline;
+  }
+  .lijstknop:hover { background: var(--chip); }
+  .lijstknop.aan { background: var(--chip); border-color: var(--accent); font-weight: 600; }
+  .lijstknop small { color: var(--dim); font-weight: 400; font-size: 12px; white-space: nowrap; }
+  .lijstkop { font-size: 12px; font-weight: 600; color: var(--dim); margin: 12px 0 4px 11px; }
+  .lijstkop:first-child { margin-top: 0; }
+  /* Een sessie die nu loopt. */
+  .live { width: 8px; height: 8px; border-radius: 50%; background: var(--good);
+          display: inline-block; margin-right: 6px; }
+
+  /* Een vraag om te lezen. Het bewerkformulier komt er pas onder als je erom
+     vraagt -- daarvoor stonden er vijfendertig tegelijk open. */
+  .vraag { padding: 12px 0; border-top: 1px solid var(--border); }
+  .vraag:first-of-type { border-top: none; }
+  .vraagkop { display: flex; gap: 10px; align-items: baseline; }
+  .vraagkop .nr { color: var(--dim); min-width: 26px; }
+  .opties { display: flex; flex-wrap: wrap; gap: 5px; margin: 7px 0 0 36px; }
+  .opt { font-size: 12px; padding: 3px 9px; border-radius: 999px; background: var(--chip);
+         color: var(--dim); }
+  .opt.goed { background: var(--good); color: var(--card); font-weight: 600; }
+  .merk { font-size: 11px; color: var(--dim); margin-left: 8px; }
   .keuzeregel {
     display: flex; justify-content: space-between; gap: 12px; width: 100%;
     text-align: left; font: inherit; cursor: pointer; padding: 10px 12px;
@@ -1785,6 +1817,11 @@ function nieuweEis(diplomaId, kind) {
 // de vragen niet eens lezen. Wat een deelnemer zonder account doet, loopt via
 // de functies — daar komt dit scherm niet aan.
 
+// Welk examen open staat, en welk van de drie panelen. Blijft staan tussen
+// tekeningen door, zodat opslaan je niet terugzet naar het begin.
+let examenGekozen = null;
+let examenPaneelNaam = 'vragen';
+
 async function renderExamens(view) {
   view.append(el('h2', {}, 'Examens'));
   view.append(el('p', { class: 'dim' },
@@ -1797,13 +1834,68 @@ async function renderExamens(view) {
     run(async () => check(await db.from('diplomas').select('id, name, kind').order('sort_order'))),
   ]);
 
-  const doos = el('div', { class: 'card' });
-  if (examens.length === 0) doos.append(el('p', { class: 'dim' }, 'Nog geen examen.'));
-  for (const ex of examens) doos.append(examenBlock(ex, diplomas));
+  if (examens.length === 0) {
+    view.append(el('div', { class: 'card' },
+      el('p', { class: 'dim' }, 'Nog geen examen.'),
+      nieuwExamenRij()));
+    view.append(importBlok());
+    view.append(opruimBlok());
+    return;
+  }
 
+  // Hoeveel vragen, en waar loopt een sessie. In twee vragen voor alle examens
+  // samen in plaats van een per examen.
+  const ids = examens.map((e) => e.id);
+  const [vragenVan, sessiesVan] = await Promise.all([
+    run(async () => check(await db.from('exam_questions').select('id, exam_id').in('exam_id', ids))),
+    run(async () => check(await db.from('exam_sessions').select('id, exam_id, status, closes_at')
+      .in('exam_id', ids))),
+  ]);
+  const aantalVragen = {};
+  for (const v of vragenVan) aantalVragen[v.exam_id] = (aantalVragen[v.exam_id] ?? 0) + 1;
+  const nu = new Date();
+  const loopt = new Set(sessiesVan
+    .filter((s) => s.status === 'open' && new Date(s.closes_at) > nu)
+    .map((s) => s.exam_id));
+  const aantalSessies = {};
+  for (const s of sessiesVan) aantalSessies[s.exam_id] = (aantalSessies[s.exam_id] ?? 0) + 1;
+
+  if (!examens.some((e) => e.id === examenGekozen)) {
+    // Loopt er een sessie, dan is dat waar je naar wil kijken.
+    examenGekozen = examens.find((e) => loopt.has(e.id))?.id ?? examens[0].id;
+  }
+  const gekozen = examens.find((e) => e.id === examenGekozen);
+
+  const raster = el('div', { class: 'md' });
+
+  const lijst = el('div', { class: 'lijst' });
+  lijst.append(el('div', { class: 'lijstkop' }, 'Onze examens'));
+  for (const ex of examens) {
+    const aan = ex.id === examenGekozen;
+    lijst.append(el('button', {
+      class: 'lijstknop' + (aan ? ' aan' : ''),
+      onclick: () => { examenGekozen = ex.id; render(); },
+    },
+      el('span', {}, loopt.has(ex.id) ? el('i', { class: 'live' }) : null, ex.title),
+      el('small', {}, loopt.has(ex.id)
+        ? 'sessie open'
+        : (aantalVragen[ex.id] ?? 0) + ' vragen')));
+  }
+  lijst.append(nieuwExamenRij());
+  raster.append(lijst);
+
+  raster.append(await examenPaneel(gekozen, diplomas,
+    aantalVragen[gekozen.id] ?? 0, aantalSessies[gekozen.id] ?? 0));
+  view.append(raster);
+
+  view.append(importBlok());
+  view.append(opruimBlok());
+}
+
+function nieuwExamenRij() {
   const naam = field('Titel', '', {});
   naam.input.placeholder = 'Theorie Roeien I/II';
-  doos.append(el('details', {}, el('summary', {}, 'Nieuw examen'),
+  return el('details', { style: 'margin-top:10px' }, el('summary', {}, '+ Nieuw examen'),
     el('div', { class: 'row', style: 'margin-top:10px' }, naam.wrap,
       el('button', {
         class: 'btn',
@@ -1815,11 +1907,165 @@ async function renderExamens(view) {
           })), 'Examen gemaakt');
           render();
         },
-      }, 'Maken'))));
+      }, 'Maken')));
+}
 
-  view.append(doos);
-  view.append(importBlok());
-  view.append(opruimBlok());
+/**
+ * Eén examen, met drie knoppen erboven.
+ *
+ * Instellingen, vragen en sessies stonden tot nu toe onder elkaar in één
+ * klapper. Bij 35 vragen betekende dat: scrollen langs 35 bewerkformulieren om
+ * bij de sessie te komen waar je mee zat mee te kijken.
+ */
+async function examenPaneel(ex, diplomas, nVragen, nSessies) {
+  const kaart = el('div', { class: 'card' });
+  const dip = diplomas.find((d) => d.id === ex.diploma_id);
+  kaart.append(el('div', { class: 'groepkop' },
+    el('b', {}, ex.title),
+    el('span', { class: 'dim' },
+      (dip ? 'Hoort bij ' + dip.name + ' · ' : '') +
+      'geslaagd vanaf ' + ex.pass_percent + '%')));
+
+  const knoppen = el('div', { class: 'row', style: 'margin:12px 0 4px; flex-wrap:wrap' });
+  const paneel = el('div', {}, el('p', { class: 'dim' }, 'Bezig met laden…'));
+  for (const [sleutel, label] of [
+    ['instellingen', 'Instellingen'],
+    ['vragen', 'Vragen ' + nVragen],
+    ['sessies', 'Sessies ' + nSessies],
+  ]) {
+    knoppen.append(chip(label, examenPaneelNaam === sleutel, () => {
+      examenPaneelNaam = sleutel;
+      render();
+    }));
+  }
+  kaart.append(knoppen, paneel);
+
+  if (examenPaneelNaam === 'instellingen') {
+    paneel.replaceChildren(instellingenPaneel(ex, diplomas));
+  } else if (examenPaneelNaam === 'sessies') {
+    paneel.replaceChildren(sessiesBlock(ex));
+  } else {
+    paneel.replaceChildren(await vragenPaneel(ex, diplomas));
+  }
+  return el('div', {}, kaart);
+}
+
+function instellingenPaneel(ex, diplomas) {
+  const doos = el('div', {});
+  const titel = field('Titel', ex.title, {});
+  const intro = field('Uitleg vooraf', ex.intro ?? '', { multiline: true, wrapClass: 'grow' });
+  const grens = field('Geslaagd vanaf (%)', ex.pass_percent, { wrapClass: 'num' });
+  grens.input.type = 'number';
+
+  const diploma = el('select', {},
+    el('option', { value: '' }, 'Geen diploma'),
+    ...diplomas.map((d) => el('option',
+      { value: d.id, selected: d.id === ex.diploma_id },
+      d.name + (d.kind === 'insigne' ? ' (insigne)' : ''))));
+
+  const schudden = el('input', { type: 'checkbox' });
+  schudden.checked = ex.shuffle;
+
+  doos.append(el('div', { class: 'row' }, titel.wrap, grens.wrap, diploma));
+  doos.append(el('div', { class: 'row', style: 'margin-top:10px' }, intro.wrap));
+  doos.append(el('div', { class: 'row', style: 'margin-top:10px' },
+    el('label', { class: 'dim' }, schudden, ' Volgorde per deelnemer schudden'),
+    el('button', {
+      class: 'btn ghost',
+      onclick: () => run(async () => check(await db.from('exams').update({
+        title: titel.input.value.trim(),
+        intro: intro.input.value || null,
+        pass_percent: Math.max(0, Math.min(100, Number(grens.input.value) || 0)),
+        diploma_id: diploma.value || null,
+        shuffle: schudden.checked,
+      }).eq('id', ex.id)), 'Opgeslagen'),
+    }, 'Opslaan'),
+    el('button', {
+      class: 'btn danger',
+      onclick: async () => {
+        if (!confirmed(`${ex.title} verwijderen?\n\nAlle vragen gaan mee, en ook de afgenomen sessies met de antwoorden die daarin staan.`)) return;
+        await run(async () => check(await db.from('exams').delete().eq('id', ex.id)), 'Verwijderd');
+        examenGekozen = null;
+        render();
+      },
+    }, 'Examen verwijderen')));
+  return doos;
+}
+
+async function vragenPaneel(ex, diplomas) {
+  const doos = el('div', {});
+
+  const vragen = check(await db.from('exam_questions').select('*')
+    .eq('exam_id', ex.id).order('position'));
+  const opties = vragen.length
+    ? check(await db.from('exam_options').select('*')
+        .in('question_id', vragen.map((q) => q.id)).order('position'))
+    : [];
+
+  // Bij welke eis een vraag hoort, in één keer opgehaald: anders staat er bij
+  // elke vraag alleen een id dat niemand kan lezen.
+  const eisIds = [...new Set(vragen.map((q) => q.requirement_id).filter(Boolean))];
+  const eisen = eisIds.length
+    ? check(await db.from('requirements').select('id, position, title').in('id', eisIds))
+    : [];
+  const eisVan = Object.fromEntries(eisen.map((r) => [r.id, r]));
+
+  if (vragen.length === 0) doos.append(el('p', { class: 'dim' }, 'Nog geen vragen.'));
+  for (const vraag of vragen) {
+    doos.append(vraagRegel(vraag, opties.filter((o) => o.question_id === vraag.id), vragen,
+      eisVan[vraag.requirement_id], diplomas));
+  }
+  doos.append(nieuweVraag(ex.id, vragen));
+  doos.append(uitEisen(ex, vragen, diplomas));
+  return doos;
+}
+
+/**
+ * Een vraag om te lezen, met het bewerkformulier eronder als je erom vraagt.
+ *
+ * Tot nu toe stond dat formulier altijd open, bij alle 35 vragen tegelijk.
+ * Daardoor kon je niet nagaan of een vraag klopte zonder door invoervelden heen
+ * te kijken, en was de pagina loodzwaar.
+ */
+function vraagRegel(vraag, opties, buren, eis, diplomas) {
+  const doos = el('div', { class: 'vraag' });
+  const goed = opties.find((o) => o.correct);
+
+  const bewerk = el('div', { class: 'hidden', style: 'margin-top:10px' });
+  const knop = el('button', {
+    class: 'btn ghost',
+    onclick: () => {
+      const open = !bewerk.classList.contains('hidden');
+      if (open) { bewerk.classList.add('hidden'); knop.textContent = 'Bewerken'; return; }
+      if (!bewerk.dataset.gevuld) {
+        bewerk.dataset.gevuld = '1';
+        bewerk.append(vraagBlock(vraag, opties, buren, eis));
+      }
+      bewerk.classList.remove('hidden');
+      knop.textContent = 'Sluiten';
+    },
+  }, 'Bewerken');
+
+  doos.append(el('div', { class: 'vraagkop' },
+    el('span', { class: 'nr' }, vraag.position + '.'),
+    el('span', { style: 'flex:1' }, vraag.prompt,
+      vraag.image_path ? el('span', { class: 'merk' }, '▣ plaatje') : null,
+      eis ? el('span', { class: 'merk' }, '• ' + eis.position + '. ' + eis.title) : null),
+    knop));
+
+  if (opties.length) {
+    doos.append(el('div', { class: 'opties' },
+      ...opties.map((o) => el('span', { class: 'opt' + (o.correct ? ' goed' : '') }, o.label))));
+  } else {
+    doos.append(el('div', { class: 'opties' },
+      el('span', { class: 'opt', style: 'color:var(--warn)' }, 'nog geen antwoorden')));
+  }
+  if (!goed && opties.length) {
+    doos.append(el('p', { class: 'dim', style: 'margin:6px 0 0 36px; color:var(--warn)' },
+      'Geen enkel antwoord staat op goed.'));
+  }
+  doos.append(bewerk);
+  return doos;
 }
 
 /**
@@ -2054,81 +2300,6 @@ async function lezenIn(data, meld) {
   const metEis = data.vragen.filter((v) => eisVan[v.eis]).length;
   say(`${data.titel} staat erin: ${vragen.length} vragen, ${gedaan} plaatjes, ${metEis} aan een eis gekoppeld.`, 'ok');
   return { vragen: vragen.length, plaatjes: gedaan, eisen: metEis };
-}
-
-function examenBlock(ex, diplomas) {
-  const details = klapper(`examen:${ex.id}`, ex.title);
-  const body = el('div', { style: 'margin-top:12px' }, el('p', { class: 'dim' }, 'Bezig met laden…'));
-  details.append(body);
-
-  details.addEventListener('toggle', async () => {
-    if (!details.open || details.dataset.loaded) return;
-    details.dataset.loaded = '1';
-    body.innerHTML = '';
-
-    const titel = field('Titel', ex.title, {});
-    const intro = field('Uitleg vooraf', ex.intro ?? '', { multiline: true, wrapClass: 'grow' });
-    const grens = field('Geslaagd vanaf (%)', ex.pass_percent, { wrapClass: 'num' });
-    grens.input.type = 'number';
-
-    const diploma = el('select', {},
-      el('option', { value: '' }, 'Geen diploma'),
-      ...diplomas.map((d) => el('option',
-        { value: d.id, selected: d.id === ex.diploma_id },
-        d.name + (d.kind === 'insigne' ? ' (insigne)' : ''))));
-
-    const schudden = el('input', { type: 'checkbox' });
-    schudden.checked = ex.shuffle;
-
-    body.append(el('div', { class: 'row' }, titel.wrap, grens.wrap, diploma));
-    body.append(el('div', { class: 'row', style: 'margin-top:10px' }, intro.wrap));
-    body.append(el('div', { class: 'row', style: 'margin-top:10px' },
-      el('label', { class: 'dim' }, schudden, ' Volgorde per deelnemer schudden'),
-      el('button', {
-        class: 'btn ghost',
-        onclick: () => run(async () => check(await db.from('exams').update({
-          title: titel.input.value.trim(),
-          intro: intro.input.value || null,
-          pass_percent: Math.max(0, Math.min(100, Number(grens.input.value) || 0)),
-          diploma_id: diploma.value || null,
-          shuffle: schudden.checked,
-        }).eq('id', ex.id)), 'Opgeslagen'),
-      }, 'Opslaan'),
-      el('button', {
-        class: 'btn danger',
-        onclick: async () => {
-          if (!confirmed(`${ex.title} verwijderen?\n\nAlle vragen gaan mee, en ook de afgenomen sessies met de antwoorden die daarin staan.`)) return;
-          await run(async () => check(await db.from('exams').delete().eq('id', ex.id)), 'Verwijderd');
-          render();
-        },
-      }, 'Examen verwijderen')));
-
-    const vragen = check(await db.from('exam_questions').select('*')
-      .eq('exam_id', ex.id).order('position'));
-    const opties = vragen.length
-      ? check(await db.from('exam_options').select('*')
-          .in('question_id', vragen.map((q) => q.id)).order('position'))
-      : [];
-
-    // Bij welke eis een vraag hoort, in één keer opgehaald: anders staat er bij
-    // elke vraag alleen een id dat niemand kan lezen.
-    const eisIds = [...new Set(vragen.map((q) => q.requirement_id).filter(Boolean))];
-    const eisen = eisIds.length
-      ? check(await db.from('requirements').select('id, position, title').in('id', eisIds))
-      : [];
-    const eisVan = Object.fromEntries(eisen.map((r) => [r.id, r]));
-
-    body.append(el('h3', {}, `${vragen.length} vragen`));
-    for (const vraag of vragen) {
-      body.append(vraagBlock(vraag, opties.filter((o) => o.question_id === vraag.id), vragen,
-        eisVan[vraag.requirement_id]));
-    }
-    body.append(nieuweVraag(ex.id, vragen));
-    body.append(uitEisen(ex, vragen, diplomas));
-    body.append(sessiesBlock(ex));
-  });
-
-  return details;
 }
 
 /**
@@ -2584,6 +2755,11 @@ function sessieBlock(sessie) {
   const open = sessie.status === 'open' && new Date(sessie.closes_at) > new Date();
   const details = klapper(`sessie:${sessie.id}`,
     `${sessie.code} — ${sessie.label ?? 'zonder naam'} — ${open ? 'open' : 'gesloten'}`);
+
+  // Een sessie die nu loopt staat meteen open. Daar zit je bij: je wil zien wie
+  // er binnenkomt zonder er eerst op te moeten klikken. Gesloten sessies zijn
+  // geschiedenis en blijven dicht.
+  if (open) details.open = true;
 
   const body = el('div', { style: 'margin-top:12px' });
   details.append(body);
