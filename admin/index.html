@@ -91,6 +91,32 @@
   .teller { font-size: 13px; font-weight: 600; white-space: nowrap; }
   .teller.klaar { color: var(--good); }
   .teller.let-op { color: var(--warn); }
+
+  /* Een kop boven een tabel: naam links, aantal rechts. */
+  .groepkop { display: flex; justify-content: space-between; align-items: baseline;
+              gap: 12px; margin-bottom: 6px; }
+  .groepkop b { font-size: 16px; }
+
+  /* De voortgangstabel. Verving de klappers: daar moest je per lid klikken om
+     ook maar iets te zien, en vergelijken kon niet. */
+  .vt { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .vt th { text-align: left; font-size: 12px; font-weight: 600; color: var(--dim);
+           padding: 0 10px 6px 0; white-space: nowrap; }
+  .vt td { padding: 10px 10px 10px 0; border-top: 1px solid var(--border);
+           vertical-align: middle; }
+  .vt tr.klikbaar { cursor: pointer; }
+  .vt tr.klikbaar:hover td { background: var(--chip); }
+  .vt .naamcel { font-weight: 600; white-space: nowrap; width: 1%; }
+  .vt .speltak { font-weight: 400; color: var(--dim); font-size: 12px; display: block; }
+  .vt .num { text-align: right; white-space: nowrap; width: 1%; }
+  .vt .detailrij td { padding-top: 0; border-top: none; font-size: 13px; }
+  .balkcel { min-width: 220px; }
+  .celbalk { height: 8px; border-radius: 4px; background: var(--chip); display: flex;
+             overflow: hidden; margin-bottom: 4px; }
+  .celbalk > i { display: block; height: 100%; background: var(--accent); }
+  .celbalk > i.onderweg { background: var(--warn); }
+  .celcijfer { font-size: 12px; color: var(--dim); }
+  .celcijfer.klaar { color: var(--good); font-weight: 600; }
   .keuzeregel {
     display: flex; justify-content: space-between; gap: 12px; width: 100%;
     text-align: left; font: inherit; cursor: pointer; padding: 10px 12px;
@@ -962,7 +988,7 @@ function materiaalRij(r) {
 // instructeur of beheerder is — met een foutmelding, niet met een lege lijst,
 // want een lege lijst lijkt op een groep waar niets gebeurt.
 
-let voortgangDiploma = null;
+let voortgangDiploma = null;   // het diploma in het onderste blok
 
 function datumKort(d) {
   if (!d) return null;
@@ -971,113 +997,219 @@ function datumKort(d) {
   });
 }
 
-/** Gehaald in de accentkleur, behandeld in oranje erachter, de rest leeg. */
-function voortgangBalk(gehaald, onderweg, totaal) {
-  const deel = (n) => (totaal > 0 ? (n / totaal) * 100 : 0);
-  return el('div', { class: 'voortgang' },
-    el('i', { style: 'width:' + deel(gehaald).toFixed(1) + '%' }),
-    el('i', { class: 'onderweg', style: 'width:' + deel(onderweg).toFixed(1) + '%' }));
-}
+let voortgangSpeltak = null;   // null = alle speltakken
 
 async function renderVoortgang(view) {
   view.append(el('h2', {}, 'Voortgang'));
   view.append(el('p', { class: 'dim' },
-    'Alleen gehaalde eisen tellen mee. Oranje is behandeld maar nog niet gehaald: ' +
-    'daar is iemand mee bezig, dus daar valt de eerste winst te halen.'));
+    'Per diploma waar aan gewerkt wordt, de verste bovenaan. Blauw is gehaald, ' +
+    'oranje is behandeld maar nog niet gehaald — alleen gehaald telt mee.'));
 
   const [stand, leden] = await Promise.all([
     run(async () => check(await db.rpc('group_progress', { p_group: group.id }))),
     run(async () => check(await db.rpc('group_members', { p_group: group.id }))),
   ]);
 
-  view.append(perLidBlok(stand, leden));
+  // group_progress kent geen speltakken; group_members wel. Koppelen op
+  // profile_id in plaats van er een kolom bij te vragen in de database.
+  const speltakVan = new Map(leden.map((l) => [l.profile_id, (l.sections ?? [])[0] ?? null]));
+  const alleSpeltakken = [...new Set(leden.flatMap((l) => l.sections ?? []))].sort();
+
+  if (alleSpeltakken.length > 1) {
+    const balk = el('div', { class: 'row', style: 'flex-wrap:wrap; margin-bottom:14px' },
+      el('span', { class: 'dim', style: 'margin-right:4px' }, 'Speltak:'));
+    balk.append(chip('Alle', voortgangSpeltak === null, () => {
+      voortgangSpeltak = null; render();
+    }));
+    for (const s of alleSpeltakken) {
+      balk.append(chip(s, voortgangSpeltak === s, () => { voortgangSpeltak = s; render(); }));
+    }
+    view.append(balk);
+  }
+
+  const inFilter = (pid) => {
+    if (voortgangSpeltak === null) return true;
+    const lid = leden.find((l) => l.profile_id === pid);
+    return (lid?.sections ?? []).includes(voortgangSpeltak);
+  };
+
+  const zichtbaar = stand.filter((r) => inFilter(r.profile_id));
+
+  view.append(...bezigBlokken(zichtbaar, speltakVan));
+  view.append(klaarBlok(zichtbaar, speltakVan));
+  view.append(zonderOpleidingBlok(stand, leden, inFilter));
   view.append(await perEisBlok(stand));
 }
 
-function perLidBlok(stand, leden) {
-  const doos = el('div', { class: 'card' });
-  doos.append(el('h3', {}, 'Per lid'));
+/** Gehaald + nog te gaan in één regel, zoals group_progress het teruggeeft. */
+function standVan(r) {
+  const gehaald = Number(r.praktijk_done) + Number(r.theorie_done);
+  const totaal = Number(r.praktijk_total) + Number(r.theorie_total);
+  return { gehaald, totaal, onderweg: Number(r.onderweg), open: totaal - gehaald };
+}
 
+/**
+ * Eén kaart per diploma waar iemand mee bezig is.
+ *
+ * Jullie doen één diploma tegelijk en gaan pas door als het vol is, dus dit zijn
+ * er normaal één of twee. Een kolom per diploma zou betekenen dat bijna elke cel
+ * leeg is; zo staat er alleen wat er werkelijk loopt.
+ */
+function bezigBlokken(stand, speltakVan) {
+  const bezig = stand.filter((r) => {
+    const s = standVan(r);
+    return s.totaal > 0 && s.open > 0;
+  });
+
+  const perDiploma = new Map();
+  for (const r of bezig) {
+    if (!perDiploma.has(r.diploma_id)) {
+      perDiploma.set(r.diploma_id, { naam: r.diploma_name, rijen: [] });
+    }
+    perDiploma.get(r.diploma_id).rijen.push(r);
+  }
+
+  if (perDiploma.size === 0) return [];
+
+  // Het drukste diploma bovenaan: daar werkt de groep aan.
+  const groepen = [...perDiploma.values()].sort((a, b) => b.rijen.length - a.rijen.length);
+
+  return groepen.map((g) => {
+    // De verste bovenaan, zodat "wie kan bijna examen doen" meteen in beeld staat.
+    g.rijen.sort((a, b) => {
+      const sa = standVan(a), sb = standVan(b);
+      return sb.gehaald / sb.totaal - sa.gehaald / sa.totaal
+        || a.full_name.localeCompare(b.full_name, 'nl');
+    });
+    const totaal = standVan(g.rijen[0]).totaal;
+
+    const doos = el('div', { class: 'card' });
+    doos.append(el('div', { class: 'groepkop' },
+      el('b', {}, g.naam),
+      el('span', { class: 'dim' },
+        g.rijen.length + (g.rijen.length === 1 ? ' vaarder' : ' vaarders') +
+        ' · ' + totaal + ' eisen')));
+
+    const tabel = el('table', { class: 'vt' });
+    tabel.append(el('thead', {}, el('tr', {},
+      el('th', {}, 'Naam'),
+      el('th', {}, 'Voortgang'),
+      el('th', { class: 'num' }, 'Te gaan'),
+      el('th', { class: 'num' }, 'Laatst'))));
+    const body = el('tbody', {});
+    for (const r of g.rijen) body.append(voortgangRij(r, speltakVan.get(r.profile_id)));
+    tabel.append(body);
+    doos.append(tabel);
+    return doos;
+  });
+}
+
+function voortgangRij(r, speltak) {
+  const s = standVan(r);
+  const deel = (n) => (s.totaal > 0 ? (n / s.totaal) * 100 : 0);
+
+  const rij = el('tr', { class: 'klikbaar' },
+    el('td', { class: 'naamcel' }, r.full_name,
+      speltak ? el('span', { class: 'speltak' }, speltak) : null),
+    el('td', { class: 'balkcel' },
+      el('div', { class: 'celbalk' },
+        el('i', { style: 'width:' + deel(s.gehaald).toFixed(1) + '%' }),
+        el('i', { class: 'onderweg', style: 'width:' + deel(s.onderweg).toFixed(1) + '%' })),
+      el('span', { class: 'celcijfer' },
+        s.gehaald + ' van ' + s.totaal + ' gehaald' +
+        (s.onderweg ? ' · ' + s.onderweg + ' bezig' : ''))),
+    el('td', { class: 'num' }, el('span', { class: 'teller' }, String(s.open))),
+    el('td', { class: 'num dim' }, datumKort(r.laatst_afgetekend) ?? '–'));
+
+  // De uitsplitsing die vroeger in de klapper stond. Eén regel tegelijk open,
+  // zodat de tabel plat blijft.
+  const detail = el('tr', { class: 'detailrij hidden' },
+    el('td', { colspan: 4 },
+      el('span', { class: 'dim' }, [
+        'praktijk ' + r.praktijk_done + '/' + r.praktijk_total,
+        'theorie ' + r.theorie_done + '/' + r.theorie_total,
+        r.theory_passed_on ? 'theorie-examen ' + datumKort(r.theory_passed_on) : null,
+        r.started_on ? 'begonnen ' + datumKort(r.started_on) : null,
+        r.awarded_on ? 'uitgereikt ' + datumKort(r.awarded_on) : null,
+      ].filter(Boolean).join(' · '))));
+  rij.addEventListener('click', () => {
+    const open = !detail.classList.contains('hidden');
+    rij.parentElement.querySelectorAll('.detailrij').forEach((d) => d.classList.add('hidden'));
+    detail.classList.toggle('hidden', open);
+  });
+
+  const fragment = document.createDocumentFragment();
+  fragment.append(rij, detail);
+  return fragment;
+}
+
+/**
+ * Wie zijn diploma vol heeft en nergens anders meer voor staat.
+ *
+ * Dit is het gat dat ontstaat juist omdát jullie één diploma tegelijk doen: zo
+ * iemand is nergens meer mee bezig, verdwijnt daardoor uit de blokken hierboven,
+ * en staat stil tot iemand hem opmerkt.
+ */
+function klaarBlok(stand, speltakVan) {
   const perLid = new Map();
   for (const r of stand) {
-    if (!perLid.has(r.profile_id)) {
-      perLid.set(r.profile_id, { naam: r.full_name, regels: [] });
-    }
-    perLid.get(r.profile_id).regels.push(r);
+    if (!perLid.has(r.profile_id)) perLid.set(r.profile_id, []);
+    perLid.get(r.profile_id).push(r);
   }
 
-  const tel = (regels, veld) => regels.reduce((a, r) => a + Number(r[veld]), 0);
-
-  for (const [pid, lid] of perLid) {
-    const totaal = tel(lid.regels, 'praktijk_total') + tel(lid.regels, 'theorie_total');
-    const gehaald = tel(lid.regels, 'praktijk_done') + tel(lid.regels, 'theorie_done');
-    const onderweg = tel(lid.regels, 'onderweg');
-    const open = totaal - gehaald;
-
-    const paneel = klapper('voortgang:' + pid, el('span', { class: 'row spread' },
-      el('b', {}, lid.naam),
-      el('span', { class: 'teller' + (open === 0 && totaal > 0 ? ' klaar' : '') },
-        totaal === 0 ? 'nog geen eisen'
-          : open === 0 ? 'alles gehaald' : open + ' te gaan')));
-    paneel.append(voortgangBalk(gehaald, onderweg, totaal));
-    for (const r of lid.regels) paneel.append(diplomaRegel(r));
-    doos.append(paneel);
+  const klaar = [];
+  for (const [pid, regels] of perLid) {
+    const metEisen = regels.filter((r) => standVan(r).totaal > 0);
+    if (metEisen.length === 0) continue;
+    if (metEisen.some((r) => standVan(r).open > 0)) continue;   // nog bezig
+    klaar.push({
+      naam: regels[0].full_name,
+      speltak: speltakVan.get(pid),
+      diplomas: metEisen.map((r) => r.diploma_name),
+      laatst: metEisen.map((r) => r.laatst_afgetekend).filter(Boolean).sort().pop() ?? null,
+    });
   }
+  if (klaar.length === 0) return null;
+  klaar.sort((a, b) => (a.laatst ?? '').localeCompare(b.laatst ?? ''));
 
-  // Wie nergens voor staat ingeschreven komt niet uit group_progress: die heeft
-  // geen inschrijving, dus ook geen regel. Juist die wil je zien, want voor hem
-  // is nog niets in gang gezet.
-  const zonder = leden.filter(
-    (l) => !perLid.has(l.profile_id)
-      && Number(l.in_progress) === 0 && Number(l.awarded) === 0,
-  );
-  if (zonder.length > 0) {
-    const rij = el('div', { class: 'eisrij' });
-    rij.append(el('div', { class: 'kop' },
-      el('b', {}, 'Nog geen opleiding'),
-      el('span', { class: 'teller' }, String(zonder.length))));
-    rij.append(el('p', { class: 'dim' },
-      'Voor deze leden is nog niets in gang gezet. Inschrijven doe je in de app, ' +
-      'bij de vaarder zelf.'));
-    const namen = el('div', {});
-    for (const l of zonder) namen.append(el('span', { class: 'naam' }, l.full_name));
-    rij.append(namen);
-    doos.append(rij);
-  }
+  const doos = el('div', { class: 'card' });
+  doos.append(el('div', { class: 'groepkop' },
+    el('b', {}, 'Klaar, nog geen volgende'),
+    el('span', { class: 'teller let-op' }, String(klaar.length))));
+  doos.append(el('p', { class: 'dim', style: 'margin-top:0' },
+    'Deze vaarders hebben hun diploma vol en staan nergens meer voor ingeschreven. ' +
+    'Zet de volgende klaar in de app, bij de vaarder zelf.'));
 
-  if (perLid.size === 0 && zonder.length === 0) {
-    doos.append(el('p', { class: 'dim' }, 'Nog geen leden in de groep.'));
+  const tabel = el('table', { class: 'vt' });
+  const body = el('tbody', {});
+  for (const k of klaar) {
+    body.append(el('tr', {},
+      el('td', { class: 'naamcel' }, k.naam,
+        k.speltak ? el('span', { class: 'speltak' }, k.speltak) : null),
+      el('td', {}, el('span', { class: 'celcijfer klaar' },
+        '✓ ' + k.diplomas.join(' en ') + ' gehaald')),
+      el('td', { class: 'num dim' }, datumKort(k.laatst) ?? '–')));
   }
+  tabel.append(body);
+  doos.append(tabel);
   return doos;
 }
 
-function diplomaRegel(r) {
-  const pd = Number(r.praktijk_done), pt = Number(r.praktijk_total);
-  const td = Number(r.theorie_done), tt = Number(r.theorie_total);
-  const onderweg = Number(r.onderweg);
-  const open = pt - pd + (tt - td);
+function zonderOpleidingBlok(stand, leden, inFilter) {
+  const metInschrijving = new Set(stand.map((r) => r.profile_id));
+  const zonder = leden.filter(
+    (l) => !metInschrijving.has(l.profile_id) && inFilter(l.profile_id)
+      && Number(l.in_progress) === 0 && Number(l.awarded) === 0,
+  );
+  if (zonder.length === 0) return null;
 
-  const rij = el('div', { class: 'eisrij' });
-  rij.append(el('div', { class: 'kop' },
-    el('span', {}, r.diploma_name,
-      el('span', { class: 'dim' }, ' ' + r.discipline_name)),
-    el('span', { class: 'teller' + (open === 0 && pt + tt > 0 ? ' klaar' : '') },
-      r.awarded_on ? 'uitgereikt ' + datumKort(r.awarded_on)
-        // Een eigen lijst begint zonder eisen. Dan is er niets gehaald en ook
-        // niets te gaan; "alles gehaald" zou dat als een prestatie tonen.
-        : pt + tt === 0 ? 'nog geen eisen'
-          : open === 0 ? 'alles gehaald' : open + ' te gaan')));
-
-  const losse = [
-    'praktijk ' + pd + '/' + pt,
-    'theorie ' + td + '/' + tt,
-    onderweg > 0 ? onderweg + ' onderweg' : null,
-    r.laatst_afgetekend ? 'laatst ' + datumKort(r.laatst_afgetekend) : 'nog niets afgetekend',
-    r.theory_passed_on ? 'theorie-examen ' + datumKort(r.theory_passed_on) : null,
-  ].filter(Boolean);
-  rij.append(el('p', { class: 'dim' }, losse.join(' · ')));
-  rij.append(voortgangBalk(pd + td, onderweg, pt + tt));
-  return rij;
+  const doos = el('div', { class: 'card' });
+  doos.append(el('div', { class: 'groepkop' },
+    el('b', {}, 'Nog geen opleiding'),
+    el('span', { class: 'teller' }, String(zonder.length))));
+  doos.append(el('div', { style: 'margin-top:4px' },
+    ...zonder.map((l) => el('span', { class: 'naam' }, l.full_name))));
+  return doos;
 }
 
 async function perEisBlok(stand) {
