@@ -101,15 +101,16 @@ export async function setMemberName(
 }
 
 export async function fetchProfileName(profileId: string): Promise<string> {
-  const { data, error } = await db()
-    .from('profiles')
-    .select('full_name')
-    .eq('id', profileId)
-    .maybeSingle();
-  if (error) throw error;
-  return (data?.full_name as string) ?? '';
+  return metOpslag('naam:' + profileId, async () => {
+    const { data, error } = await db()
+      .from('profiles')
+      .select('full_name')
+      .eq('id', profileId)
+      .maybeSingle();
+    if (error) throw error;
+    return (data?.full_name as string) ?? '';
+  });
 }
-
 /** Leave `profileId` out for your own voortgang. */
 export async function fetchEnrollments(
   groupId: string,
@@ -127,35 +128,36 @@ export async function fetchEnrollments(
 
 /** The opleiding itself: who, which diploma, and the dates around the examens. */
 export async function fetchEnrollment(enrollmentId: string): Promise<EnrollmentDetail> {
-  const { data, error } = await db()
-    .from('enrollments')
-    .select(
-      // profiles!profile_id is geen omhaal: enrollments wijst op twee manieren
-      // naar profiles — profile_id (de kandidaat) en created_by (wie hem
-      // inschreef). Zonder die hint weigert PostgREST de embed, omdat het niet
-      // kan raden welke van de twee bedoeld is. Laat hem staan.
-      'id, group_id, profile_id, started_on, theory_passed_on, awarded_on, note, profiles!profile_id(id, full_name), diplomas(*, disciplines(*))',
-    )
-    .eq('id', enrollmentId)
-    .single();
-  if (error) throw error;
+  return metOpslag('enrollment:' + enrollmentId, async () => {
+    const { data, error } = await db()
+      .from('enrollments')
+      .select(
+        // profiles!profile_id is geen omhaal: enrollments wijst op twee manieren
+        // naar profiles — profile_id (de kandidaat) en created_by (wie hem
+        // inschreef). Zonder die hint weigert PostgREST de embed, omdat het niet
+        // kan raden welke van de twee bedoeld is. Laat hem staan.
+        'id, group_id, profile_id, started_on, theory_passed_on, awarded_on, note, profiles!profile_id(id, full_name), diplomas(*, disciplines(*))',
+      )
+      .eq('id', enrollmentId)
+      .single();
+    if (error) throw error;
 
-  const row = data as any;
-  const { disciplines, ...diploma } = row.diplomas;
-  return {
-    id: row.id,
-    group_id: row.group_id,
-    profile_id: row.profile_id,
-    started_on: row.started_on,
-    theory_passed_on: row.theory_passed_on,
-    awarded_on: row.awarded_on,
-    note: row.note,
-    member: row.profiles as { id: string; full_name: string },
-    diploma: diploma as Diploma,
-    discipline: (disciplines ?? null) as Discipline | null,
-  };
+    const row = data as any;
+    const { disciplines, ...diploma } = row.diplomas;
+    return {
+      id: row.id,
+      group_id: row.group_id,
+      profile_id: row.profile_id,
+      started_on: row.started_on,
+      theory_passed_on: row.theory_passed_on,
+      awarded_on: row.awarded_on,
+      note: row.note,
+      member: row.profiles as { id: string; full_name: string },
+      diploma: diploma as Diploma,
+      discipline: (disciplines ?? null) as Discipline | null,
+    };
+  });
 }
-
 export type EnrollmentDetail = {
   id: string;
   group_id: string;
@@ -239,11 +241,12 @@ export async function fetchCrews(groupId: string): Promise<Crew[]> {
 }
 
 export async function fetchCrew(crewId: string): Promise<Crew> {
-  const { data, error } = await db().from('crews').select('*').eq('id', crewId).single();
-  if (error) throw error;
-  return data as Crew;
+  return metOpslag('crew:' + crewId, async () => {
+    const { data, error } = await db().from('crews').select('*').eq('id', crewId).single();
+    if (error) throw error;
+    return data as Crew;
+  });
 }
-
 export async function createCrew(groupId: string, name: string): Promise<void> {
   const { error } = await db().from('crews').insert({ group_id: groupId, name: name.trim() });
   if (error) throw error;
@@ -256,23 +259,25 @@ export async function deleteCrew(crewId: string): Promise<void> {
 
 /** Hoeveel mensen er in elke bak zitten, voor de lijst met bakken. */
 export async function fetchCrewSizes(): Promise<Record<string, number>> {
-  const { data, error } = await db().from('crew_members').select('crew_id');
-  if (error) throw error;
-  const sizes: Record<string, number> = {};
-  for (const row of data ?? []) {
-    sizes[row.crew_id] = (sizes[row.crew_id] ?? 0) + 1;
-  }
-  return sizes;
+  return metOpslag('crewsizes', async () => {
+    const { data, error } = await db().from('crew_members').select('crew_id');
+    if (error) throw error;
+    const sizes: Record<string, number> = {};
+    for (const row of data ?? []) {
+      sizes[row.crew_id] = (sizes[row.crew_id] ?? 0) + 1;
+    }
+    return sizes;
+  });
 }
-
 export async function fetchCrewRoster(
   crewId: string,
 ): Promise<{ profile_id: string; full_name: string }[]> {
-  const { data, error } = await db().rpc('crew_roster', { p_crew: crewId });
-  if (error) throw error;
-  return data ?? [];
+  return metOpslag('crewroster:' + crewId, async () => {
+    const { data, error } = await db().rpc('crew_roster', { p_crew: crewId });
+    if (error) throw error;
+    return data ?? [];
+  });
 }
-
 /** De hele bemanning in één keer vervangen. */
 export async function setCrewMembers(crewId: string, profileIds: string[]): Promise<void> {
   const { error } = await db().rpc('set_crew_members', {
@@ -283,11 +288,12 @@ export async function setCrewMembers(crewId: string, profileIds: string[]): Prom
 }
 
 export async function fetchCrewDiplomas(crewId: string): Promise<CrewDiploma[]> {
-  const { data, error } = await db().rpc('crew_diplomas', { p_crew: crewId });
-  if (error) throw error;
-  return (data ?? []) as CrewDiploma[];
+  return metOpslag('crewdiplomas:' + crewId, async () => {
+    const { data, error } = await db().rpc('crew_diplomas', { p_crew: crewId });
+    if (error) throw error;
+    return (data ?? []) as CrewDiploma[];
+  });
 }
-
 export async function fetchCrewSheet(
   crewId: string,
   requirementId: string,
@@ -303,15 +309,16 @@ export async function fetchCrewSheet(
 }
 
 export async function fetchRequirement(requirementId: string): Promise<Requirement> {
-  const { data, error } = await db()
-    .from('requirements')
-    .select('*')
-    .eq('id', requirementId)
-    .single();
-  if (error) throw error;
-  return data as Requirement;
+  return metOpslag('eis:' + requirementId, async () => {
+    const { data, error } = await db()
+      .from('requirements')
+      .select('*')
+      .eq('id', requirementId)
+      .single();
+    if (error) throw error;
+    return data as Requirement;
+  });
 }
-
 // ---------------------------------------------------------------- opleidingen
 
 export async function enroll(
@@ -491,6 +498,11 @@ export async function setMemberSections(
   if (error) throw error;
 }
 
+/**
+ * Niet bewaard voor offline, met opzet. Een uitnodigingscode deel je met iemand
+ * die hem online moet inwisselen; zonder bereik heb je er niets aan, en een
+ * verlopen code uit de opslag tonen is misleidender dan niets tonen.
+ */
 export async function fetchInvites(groupId: string): Promise<Invite[]> {
   const { data, error } = await db()
     .from('invites')
@@ -689,6 +701,12 @@ export async function setOwnRequirementOrder(
  * je vraagt er een link voor die een uur geldig is, en die krijg je alleen als
  * je in de groep zit. Dat is strenger dan bij de plaatjes in een examen, omdat
  * lesmateriaal vaak door iemand anders gemaakt is.
+ */
+/**
+ * Niet bewaard voor offline, met opzet. De bestanden zelf staan in een
+ * afgeschermde map en vragen per keer een ondertekende link, en die krijg je
+ * alleen met verbinding. Een lijst tonen van lesboeken die niet opengaan is
+ * vervelender dan er geen te tonen; het scherm laat het blok dan gewoon weg.
  */
 export async function fetchMaterials(
   groupId: string,
