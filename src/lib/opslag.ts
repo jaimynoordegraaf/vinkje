@@ -71,7 +71,11 @@ export async function metOpslag<T>(sleutel: string, haal: () => Promise<T>): Pro
   if (!isOnline()) {
     const bewaarde = await lees<T>(sleutel);
     if (bewaarde !== null) return bewaarde;
-    // Niets bewaard: dan maar wel proberen, want anders weet je helemaal niets.
+
+    // Geen bereik én niets bewaard. Toch proberen kost zeven seconden om
+    // iets te leren wat we al weten, en het scherm staat die hele tijd op
+    // "laden". Meteen zeggen dat het er niet is, is sneller en eerlijker.
+    throw { message: 'network: niet klaargezet en geen verbinding' };
   }
 
   try {

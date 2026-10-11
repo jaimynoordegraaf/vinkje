@@ -18,6 +18,7 @@
 
 import {
   fetchCatalogue,
+  fetchCrewSheet,
   fetchCrew,
   fetchCrewDiplomas,
   fetchCrewRoster,
@@ -31,6 +32,8 @@ import {
   fetchSections,
   fetchSheet,
 } from './api';
+import { bewaar } from './opslag';
+import type { Requirement } from './types';
 
 export type Stand = {
   gedaan: number;
@@ -98,7 +101,16 @@ export async function zetKlaar(
   totaal += diplomas.length + leden.length + bakken.length;
   stap('De eisen per diploma');
 
-  await metVieren(diplomas, (d) => fetchDiploma(d.id), () => {
+  // Per diploma de eisen, en die meteen ook los wegschrijven onder hun eigen
+  // sleutel. Het scherm "een eis voor de hele bak" vraagt ze namelijk één voor
+  // één op (fetchRequirement), en dat zijn verzoeken die we hier gratis
+  // kunnen voorkomen: we hebben ze al binnen.
+  const eisenVanDiploma = new Map<string, Requirement[]>();
+  await metVieren(diplomas, async (d) => {
+    const uit = await fetchDiploma(d.id);
+    eisenVanDiploma.set(d.id, uit.requirements);
+    await Promise.all(uit.requirements.map((r) => bewaar('eis:' + r.id, r)));
+  }, () => {
     gedaan += 1;
     stap('De eisen per diploma');
   });
@@ -123,6 +135,25 @@ export async function zetKlaar(
   }, () => {
     gedaan += 1;
     stap('De vaarders');
+  });
+
+  // Per bak, per eis van het diploma waar die bak aan werkt: de stand voor de
+  // hele bemanning. Dit is het scherm dat op het water opengaat, en precies
+  // wat er eerst niet klaarstond.
+  const bakEisen: { bak: string; eis: string }[] = [];
+  for (const bak of bakken) {
+    const hunDiplomas = (await probeer(() => fetchCrewDiplomas(bak.id))) ?? [];
+    for (const d of hunDiplomas) {
+      for (const eis of eisenVanDiploma.get(d.diploma_id) ?? []) {
+        bakEisen.push({ bak: bak.id, eis: eis.id });
+      }
+    }
+  }
+  totaal += bakEisen.length;
+  stap('De bakken per eis');
+  await metVieren(bakEisen, (be) => fetchCrewSheet(be.bak, be.eis), () => {
+    gedaan += 1;
+    stap('De bakken per eis');
   });
 
   totaal += opleidingen.length;
