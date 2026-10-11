@@ -56,3 +56,29 @@ export const useNetwerk = create<Netwerk>((set, get) => ({
 export const meldGelukt = () => useNetwerk.getState().meldGelukt();
 export const meldMislukt = () => useNetwerk.getState().meldMislukt();
 export const isOnline = () => useNetwerk.getState().online;
+
+/**
+ * Eén goedkoop verzoek om te merken dat het bereik terug is.
+ *
+ * Dit hoort geen scherm te zijn. Liet je een gewone leesactie af en toe het
+ * netwerk proberen, dan is dat scherm ineens seconden traag terwijl de rest
+ * meteen laadt -- willekeurig en onverklaarbaar voor wie het gebruikt.
+ */
+export async function prik(url: string, sleutel: string): Promise<boolean> {
+  try {
+    const klok = new AbortController();
+    const stop = setTimeout(() => klok.abort(), 5000);
+    const antwoord = await fetch(url + "/rest/v1/", {
+      method: "HEAD",
+      headers: { apikey: sleutel },
+      signal: klok.signal,
+    });
+    clearTimeout(stop);
+    if (antwoord.status >= 500) return false;
+    meldGelukt();
+    return true;
+  } catch {
+    meldMislukt();
+    return false;
+  }
+}

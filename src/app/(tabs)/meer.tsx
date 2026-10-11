@@ -8,6 +8,7 @@ import {
   useMyRole,
   useSession,
 } from '@/lib/session';
+import { Klaarzetten } from '@/components/Klaarzetten';
 import { ROLE_LABEL } from '@/lib/types';
 import { space } from '@/theme';
 
@@ -79,6 +80,8 @@ export default function Meer() {
             beheerder van de app — de eisenlijst wordt centraal bijgewerkt.
           </Txt>
         </View>
+
+        <Klaarzetten groupId={group?.id ?? null} />
 
         <Button variant="secondary" label="Uitloggen" onPress={() => void signOut()} />
       </View>

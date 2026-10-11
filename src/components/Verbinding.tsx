@@ -15,7 +15,8 @@ import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Txt } from '@/components/ui';
-import { useNetwerk } from '@/lib/netwerk';
+import { prik, useNetwerk } from '@/lib/netwerk';
+import { verbindingsAdres, verbindingsSleutel } from '@/lib/supabase';
 import { useWachtrij, verstuurWachtrij } from '@/lib/wachtrij';
 import { useTheme } from '@/lib/use-theme';
 import { space } from '@/theme';
@@ -31,10 +32,18 @@ export function Verbinding() {
   // om het moment te pakken waarop je langs een mast vaart, en zelden genoeg om
   // een batterij te merken.
   useEffect(() => {
-    if (wachtend === 0) return;
-    const tik = setInterval(() => void verstuurWachtrij(), 20000);
+    // Zonder bereik: eens per twintig seconden één goedkoop verzoek om te
+    // merken dat het terug is. Staat er iets klaar, dan meteen versturen.
+    if (online && wachtend === 0) return;
+    const tik = setInterval(() => {
+      if (wachtend > 0) {
+        void verstuurWachtrij();
+      } else if (verbindingsAdres && verbindingsSleutel) {
+        void prik(verbindingsAdres, verbindingsSleutel);
+      }
+    }, 20000);
     return () => clearInterval(tik);
-  }, [wachtend]);
+  }, [wachtend, online]);
 
   if (online && wachtend === 0 && !fout) return null;
 

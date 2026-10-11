@@ -14,7 +14,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { isNetwerkFout, meldGelukt, meldMislukt } from './netwerk';
+import { isNetwerkFout, isOnline, meldGelukt, meldMislukt } from './netwerk';
 
 const VOORVOEGSEL = 'vinkje:bewaard:';
 
@@ -63,8 +63,19 @@ export async function wisAlles(): Promise<void> {
  * wegmoffelen achter oude gegevens is precies hoe je een halve dag kwijt bent.
  */
 export async function metOpslag<T>(sleutel: string, haal: () => Promise<T>): Promise<T> {
+  // Weten we al dat er geen bereik is, dan niet eerst een verzoek doen dat
+  // toch nergens aankomt. Dat is waarom het zonder internet zo lang duurde:
+  // elk scherm wachtte tot het besturingssysteem het opgaf, en dat kan een
+  // halve minuut zijn. Af en toe toch proberen, anders merkt de app nooit dat
+  // het bereik terug is.
+  if (!isOnline()) {
+    const bewaarde = await lees<T>(sleutel);
+    if (bewaarde !== null) return bewaarde;
+    // Niets bewaard: dan maar wel proberen, want anders weet je helemaal niets.
+  }
+
   try {
-    const verse = await haal();
+    const verse = await metGeduld(haal());
     meldGelukt();
     void bewaar(sleutel, verse);
     return verse;
@@ -76,6 +87,30 @@ export async function metOpslag<T>(sleutel: string, haal: () => Promise<T>): Pro
     throw e;
   }
 }
+
+/** Hoe lang we wachten voordat we een verzoek opgeven. */
+const GEDULD_MS = 7000;
+
+/**
+ * Een verzoek dat blijft hangen is erger dan een verzoek dat faalt.
+ *
+ * Op een haven met één streepje bereik komt een verzoek soms wel weg maar
+ * nooit terug. Zonder deze grens blijft het scherm op "laden" staan tot het
+ * besturingssysteem er een eind aan maakt, en dat duurt lang.
+ */
+function metGeduld<T>(belofte: Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const klok = setTimeout(
+      () => reject({ message: 'network timeout: geen antwoord binnen de tijd' }),
+      GEDULD_MS,
+    );
+    belofte.then(
+      (w) => { clearTimeout(klok); resolve(w); },
+      (e) => { clearTimeout(klok); reject(e); },
+    );
+  });
+}
+
 
 /** Het bewaarde antwoord bijwerken, voor een aftekening die nog in de wachtrij staat. */
 export async function pasBewaardeAan<T>(

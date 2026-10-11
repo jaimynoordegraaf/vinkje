@@ -23,6 +23,10 @@ const publishableKey =
 
 export const isConfigured = Boolean(url && publishableKey);
 
+/** Voor het verbindingsprikje in netwerk.ts; nergens anders voor nodig. */
+export const verbindingsAdres = url ?? null;
+export const verbindingsSleutel = publishableKey ?? null;
+
 /**
  * Storage is only attached when there is a real device or browser to store in.
  * Expo also renders the app in plain Node to pre-build web pages, and there
