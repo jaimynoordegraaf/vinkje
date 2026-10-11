@@ -105,6 +105,7 @@ async function main() {
     '026-voortgang.sql',
     '027-oud-lid.sql',
     '028-lesmateriaal.sql',
+    '029-aftekenen-met-moment.sql',
     '010-eisen.sql',
   ]) {
     try {
@@ -1624,6 +1625,90 @@ async function main() {
     `${naWeggooien.n}`);
   check('het wordt algemeen in plaats van weg', naWeggooien.metdiploma === 0,
     `${naWeggooien.metdiploma}`);
+
+  section('Aftekenen met een moment erbij');
+
+  // Eigen mensen, want deze sectie staat achteraan en wim is daar allang geen
+  // lid meer van jwf.
+  const waterBaas = await newUser('water@voorbeeld.nl', 'Waterinstructeur');
+  const waterLid = await newUser('watervaarder@voorbeeld.nl', 'Watervaarder');
+  await db.exec(
+    `insert into memberships (group_id, profile_id, role) values
+       ('${jwf}', '${waterBaas}', 'instructeur'),
+       ('${jwf}', '${waterLid}', 'lid')`,
+  );
+  const waterOpleiding = await as(waterBaas, async () =>
+    (await db.query(
+      'insert into enrollments (group_id, profile_id, diploma_id) values ($1, $2, $3) returning id',
+      [jwf, waterLid, roeien12])).rows[0].id);
+  const waterEis = (await one("select id from requirements where code = 'roeien-12.p1'")).id;
+
+  const waterStand = async () => (await one(
+    `select status, signed_at from sign_offs
+      where enrollment_id = '${waterOpleiding}' and requirement_id = '${waterEis}'`));
+
+  // Om 10:00 op het water afgetekend, pas om 14:00 verstuurd.
+  const binnen = await refused(waterBaas,
+    "select set_sign_off_status_at($1, $2, 'gehaald', null, $3::timestamptz)",
+    [waterOpleiding, waterEis, '2026-09-01T10:00:00Z']);
+  check('een aftekening van het water komt binnen', binnen === null, binnen ?? '');
+  const metMoment = await waterStand();
+  check('en houdt het moment waarop het gebeurde',
+    metMoment && metMoment.signed_at.toISOString().startsWith('2026-09-01T10:00'),
+    metMoment ? metMoment.signed_at.toISOString() : 'geen rij');
+
+  // Hier gaat het om: wie het eerst tikte maar het laatst aan land komt, mag
+  // een nieuwere aftekening niet omver gooien.
+  await as(waterBaas, () => db.query(
+    "select set_sign_off_status_at($1, $2, 'behandeld', null, $3::timestamptz)",
+    [waterOpleiding, waterEis, '2026-09-01T09:00:00Z']));
+  check('een oudere handeling overschrijft een nieuwere niet',
+    (await waterStand()).status === 'gehaald', (await waterStand()).status);
+
+  await as(waterBaas, () => db.query(
+    "select set_sign_off_status_at($1, $2, 'behandeld', null, $3::timestamptz)",
+    [waterOpleiding, waterEis, '2026-09-01T11:00:00Z']));
+  check('een nieuwere wel', (await waterStand()).status === 'behandeld',
+    (await waterStand()).status);
+
+  // Weghalen is ook een handeling, met dezelfde regel.
+  await as(waterBaas, () => db.query(
+    'select set_sign_off_status_at($1, $2, null, null, $3::timestamptz)',
+    [waterOpleiding, waterEis, '2026-09-01T10:30:00Z']));
+  check('weghalen met een ouder moment doet niets',
+    (await waterStand()) !== undefined, 'de rij was weg');
+
+  await as(waterBaas, () => db.query(
+    'select set_sign_off_status_at($1, $2, null, null, $3::timestamptz)',
+    [waterOpleiding, waterEis, '2026-09-01T12:00:00Z']));
+  const waterWeg = await one(
+    `select count(*)::int as n from sign_offs
+      where enrollment_id = '${waterOpleiding}' and requirement_id = '${waterEis}'`);
+  check('met een nieuwer moment wel', waterWeg.n === 0, `${waterWeg.n}`);
+
+  // Een telefoon met een verkeerd gezette klok mag niet alles daarna blokkeren.
+  await as(waterBaas, () => db.query(
+    "select set_sign_off_status_at($1, $2, 'gehaald', null, $3::timestamptz)",
+    [waterOpleiding, waterEis, '2099-01-01T00:00:00Z']));
+  const uitDeToekomst = await waterStand();
+  check('een moment uit de toekomst wordt teruggezet naar nu',
+    uitDeToekomst && uitDeToekomst.signed_at < new Date(Date.now() + 60000),
+    uitDeToekomst ? uitDeToekomst.signed_at.toISOString() : 'geen rij');
+  await as(waterBaas, () => db.query(
+    "select set_sign_off_status_at($1, $2, 'behandeld', null, null)",
+    [waterOpleiding, waterEis]));
+  check('en blokkeert dus niet wat erna komt',
+    (await waterStand()).status === 'behandeld', (await waterStand()).status);
+
+  // De rollen gelden onverminderd.
+  const waterDoorLid = await refused(waterLid,
+    "select set_sign_off_status_at($1, $2, 'gehaald', null, null)",
+    [waterOpleiding, waterEis]);
+  check('een lid tekent ook zo niet af', waterDoorLid !== null, 'het lukte wel');
+  const waterDoorVreemde = await refused(ander,
+    "select set_sign_off_status_at($1, $2, 'gehaald', null, null)",
+    [waterOpleiding, waterEis]);
+  check('iemand van buiten de groep ook niet', waterDoorVreemde !== null, 'het lukte wel');
 
   report();
   process.exit(failures === 0 ? 0 : 1);

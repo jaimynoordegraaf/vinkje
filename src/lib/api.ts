@@ -8,6 +8,8 @@
  */
 
 import { db } from './supabase';
+import { metOpslag } from './opslag';
+import { tekenAf } from './wachtrij';
 import type {
   Crew,
   CrewDiploma,
@@ -63,9 +65,11 @@ function slugify(name: string): string {
 // ---------------------------------------------------------------- de vaarders
 
 export async function fetchMembers(groupId: string): Promise<MemberRow[]> {
-  const { data, error } = await db().rpc('group_members', { p_group: groupId });
-  if (error) throw error;
-  return (data ?? []) as MemberRow[];
+  return metOpslag('members:' + groupId, async () => {
+    const { data, error } = await db().rpc('group_members', { p_group: groupId });
+    if (error) throw error;
+    return (data ?? []) as MemberRow[];
+  });
 }
 
 /**
@@ -111,12 +115,14 @@ export async function fetchEnrollments(
   groupId: string,
   profileId?: string,
 ): Promise<EnrollmentRow[]> {
-  const { data, error } = await db().rpc('member_enrollments', {
-    p_group: groupId,
-    p_profile: profileId ?? null,
+  return metOpslag('enrollments:' + groupId + ':' + (profileId ?? 'ik'), async () => {
+    const { data, error } = await db().rpc('member_enrollments', {
+      p_group: groupId,
+      p_profile: profileId ?? null,
+    });
+    if (error) throw error;
+    return (data ?? []) as EnrollmentRow[];
   });
-  if (error) throw error;
-  return (data ?? []) as EnrollmentRow[];
 }
 
 /** The opleiding itself: who, which diploma, and the dates around the examens. */
@@ -165,11 +171,13 @@ export type EnrollmentDetail = {
 };
 
 export async function fetchSheet(enrollmentId: string): Promise<SheetRow[]> {
-  const { data, error } = await db().rpc('enrollment_sheet', {
-    p_enrollment: enrollmentId,
+  return metOpslag('sheet:' + enrollmentId, async () => {
+    const { data, error } = await db().rpc('enrollment_sheet', {
+      p_enrollment: enrollmentId,
+    });
+    if (error) throw error;
+    return (data ?? []) as SheetRow[];
   });
-  if (error) throw error;
-  return (data ?? []) as SheetRow[];
 }
 
 /**
@@ -202,26 +210,32 @@ export async function setSignOffStatus(
   status: SignOffStatus | null,
   note?: string | null,
 ): Promise<void> {
-  const { error } = await db().rpc('set_sign_off_status', {
-    p_enrollment: enrollmentId,
-    p_requirement: requirementId,
-    p_status: status,
-    p_note: note ?? null,
+  // Niet rechtstreeks naar de database: op het water is er geen bereik. De
+  // aftekening gaat in de wachtrij, het scherm toont hem meteen, en versturen
+  // gebeurt zodra het kan. Het moment van tikken gaat mee, want dat is wat
+  // telt als twee instructeurs dezelfde eis aanraken.
+  await tekenAf({
+    enrollment_id: enrollmentId,
+    requirement_id: requirementId,
+    status,
+    note: note ?? null,
+    moment: new Date().toISOString(),
   });
-  if (error) throw error;
 }
 
 // ---------------------------------------------------------------- bakken
 
 export async function fetchCrews(groupId: string): Promise<Crew[]> {
-  const { data, error } = await db()
-    .from('crews')
-    .select('*')
-    .eq('group_id', groupId)
-    .order('sort_order')
-    .order('name');
-  if (error) throw error;
-  return (data ?? []) as Crew[];
+  return metOpslag('crews:' + groupId, async () => {
+    const { data, error } = await db()
+      .from('crews')
+      .select('*')
+      .eq('group_id', groupId)
+      .order('sort_order')
+      .order('name');
+    if (error) throw error;
+    return (data ?? []) as Crew[];
+  });
 }
 
 export async function fetchCrew(crewId: string): Promise<Crew> {
@@ -278,12 +292,14 @@ export async function fetchCrewSheet(
   crewId: string,
   requirementId: string,
 ): Promise<CrewSheetRow[]> {
-  const { data, error } = await db().rpc('crew_sheet', {
-    p_crew: crewId,
-    p_requirement: requirementId,
+  return metOpslag('crewsheet:' + crewId + ':' + requirementId, async () => {
+    const { data, error } = await db().rpc('crew_sheet', {
+      p_crew: crewId,
+      p_requirement: requirementId,
+    });
+    if (error) throw error;
+    return (data ?? []) as CrewSheetRow[];
   });
-  if (error) throw error;
-  return (data ?? []) as CrewSheetRow[];
 }
 
 export async function fetchRequirement(requirementId: string): Promise<Requirement> {
@@ -339,6 +355,7 @@ export async function deleteEnrollment(enrollmentId: string): Promise<void> {
 // ---------------------------------------------------------------- catalogus
 
 export async function fetchCatalogue(): Promise<DisciplineWithDiplomas[]> {
+  return metOpslag('catalogus', async () => {
   const [disciplines, diplomas] = await Promise.all([
     db().from('disciplines').select('*').order('sort_order'),
     db().from('diplomas').select('*').order('sort_order'),
@@ -373,11 +390,13 @@ export async function fetchCatalogue(): Promise<DisciplineWithDiplomas[]> {
     eigenGroep('diploma', 'Eigen lijsten', 'Van onze groep, niet landelijk'),
     eigenGroep('insigne', 'Insignes', 'Van onze groep'),
   ].filter((g) => g.diplomas.length > 0);
+  });
 }
 
 export async function fetchDiploma(
   diplomaId: string,
 ): Promise<{ diploma: Diploma; discipline: Discipline | null; requirements: Requirement[] }> {
+  return metOpslag('diploma:' + diplomaId, async () => {
   const [diploma, requirements] = await Promise.all([
     db().from('diplomas').select('*, disciplines(*)').eq('id', diplomaId).single(),
     db()
@@ -396,11 +415,13 @@ export async function fetchDiploma(
     discipline: (disciplines ?? null) as Discipline | null,
     requirements: (requirements.data ?? []) as Requirement[],
   };
+  });
 }
 
 // ---------------------------------------------------------------- beheer
 
 export async function fetchSections(groupId: string): Promise<Section[]> {
+  return metOpslag('sections:' + groupId, async () => {
   const { data, error } = await db()
     .from('sections')
     .select('*')
@@ -409,6 +430,7 @@ export async function fetchSections(groupId: string): Promise<Section[]> {
     .order('name');
   if (error) throw error;
   return (data ?? []) as Section[];
+  });
 }
 
 export async function createSection(groupId: string, name: string): Promise<void> {

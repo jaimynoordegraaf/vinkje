@@ -11,6 +11,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 
 import { errorMessage } from './errors';
+import { metOpslag, wisAlles } from './opslag';
+import { laadWachtrij, verstuurWachtrij } from './wachtrij';
 import { db, isConfigured, supabase } from './supabase';
 import {
   STAFF_ROLES,
@@ -45,6 +47,15 @@ async function leesActieveGroep() {
 type State = {
   /** False until the stored session has been read; the UI waits on this. */
   ready: boolean;
+  /**
+   * Of de lijst met groepen ooit gelezen is -- vers of uit de opslag.
+   *
+   * Zonder dit stuurde de app je naar het welkomstscherm zodra het ophalen
+   * mislukte: memberships bleef leeg, en leeg betekende "zit in geen enkele
+   * groep". Op het water, zonder bereik, stond je dus ineens op "Een nieuwe
+   * groep beginnen". Niets weten is iets anders dan nergens bij horen.
+   */
+  groepenGeladen: boolean;
   userId: string | null;
   email: string | null;
   profile: Profile | null;
@@ -73,6 +84,7 @@ type Actions = {
 
 export const useSession = create<State & Actions>((set, get) => ({
   ready: !isConfigured, // nothing to wait for when there is no server
+  groepenGeladen: false,
   userId: null,
   email: null,
   profile: null,
@@ -111,6 +123,8 @@ export const useSession = create<State & Actions>((set, get) => ({
     });
 
     await get().reload();
+    await laadWachtrij();
+    void verstuurWachtrij();
     set({ ready: true });
   },
 
@@ -122,8 +136,9 @@ export const useSession = create<State & Actions>((set, get) => ({
 
     try {
       const userId = get().userId as string;
-      const memberships = await fetchMemberships(userId);
-      const profile = await fetchProfile(userId);
+      const memberships = await metOpslag('memberships:' + userId, () =>
+        fetchMemberships(userId));
+      const profile = await metOpslag('profile:' + userId, () => fetchProfile(userId));
 
       // Keep the groep they were last looking at, if they are still in it.
       const stored = await leesActieveGroep();
@@ -132,7 +147,7 @@ export const useSession = create<State & Actions>((set, get) => ({
         memberships[0]?.group_id ??
         null;
 
-      set({ profile, memberships, activeGroupId: active, error: null });
+      set({ profile, memberships, activeGroupId: active, error: null, groepenGeladen: true });
       set({ sections: active ? await fetchSections(active) : [] });
     } catch (e) {
       set({ error: errorMessage(e) });
@@ -148,6 +163,8 @@ export const useSession = create<State & Actions>((set, get) => ({
   async signOut(scope) {
     await supabase?.auth.signOut(scope ? { scope } : undefined);
     await AsyncStorage.multiRemove([ACTIVE_GROUP_KEY, OUDE_ACTIVE_GROUP_KEY]);
+    // Wat bewaard is hoort bij wie er net nog inlogde; dat mag de volgende niet zien.
+    await wisAlles();
     set({
       userId: null,
       email: null,

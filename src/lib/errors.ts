@@ -12,8 +12,17 @@
  * public.diplomas"), and dropping them costs an afternoon of guessing.
  */
 
+import { isNetwerkFout } from './netwerk';
+
 export function errorMessage(error: unknown): string {
   if (error == null) return '';
+
+  // "TypeError: Network request failed" is waar, en zegt een vaarder op de
+  // steiger niets. Dit is geen fout in de app maar een paal zonder bereik.
+  if (isNetwerkFout(error)) {
+    return 'Geen verbinding. Zodra je weer bereik hebt gaat dit vanzelf verder.';
+  }
+
   if (typeof error === 'string') return error;
   if (error instanceof Error && error.message) return error.message;
 

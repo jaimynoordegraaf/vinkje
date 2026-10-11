@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Loading, Txt } from '@/components/ui';
 import { isAuthLink, parseAuthLink } from '@/lib/auth-link';
 import { errorMessage } from '@/lib/errors';
+import { Verbinding } from '@/components/Verbinding';
 import { useSession } from '@/lib/session';
 import { isConfigured, supabase } from '@/lib/supabase';
 import { useTheme } from '@/lib/use-theme';
@@ -44,6 +45,7 @@ function Gate() {
   const ready = useSession((s) => s.ready);
   const userId = useSession((s) => s.userId);
   const hasGroup = useSession((s) => s.memberships.length > 0);
+  const groepenGeladen = useSession((s) => s.groepenGeladen);
   const recovering = useSession((s) => s.recovering);
 
   const first = segments[0];
@@ -63,12 +65,15 @@ function Gate() {
 
     if (!userId) {
       if (!inAuth) router.replace('/sign-in');
-    } else if (!hasGroup) {
+    } else if (!hasGroup && groepenGeladen) {
+      // Alleen doorsturen als we ook echt wéten dat hij nergens bij hoort.
+      // Zonder bereik is de lijst leeg omdat het ophalen mislukte, en dan is
+      // "Een nieuwe groep beginnen" het laatste wat je wil zien.
       if (!inOnboarding) router.replace('/welkom');
     } else if (inAuth || inOnboarding || inRecovery) {
       router.replace('/');
     }
-  }, [ready, userId, hasGroup, recovering, inAuth, inOnboarding, inRecovery, router]);
+  }, [ready, userId, hasGroup, groepenGeladen, recovering, inAuth, inOnboarding, inRecovery, router]);
 
   if (!isConfigured) return <NotConfigured />;
   if (!ready) {
@@ -82,6 +87,7 @@ function Gate() {
   return (
     <>
       <StatusBar style={t.dark ? 'light' : 'dark'} />
+      <Verbinding />
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: t.background },

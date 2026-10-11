@@ -75,6 +75,9 @@ project dat al bestaat:
     028-lesmateriaal.sql      lesboeken en naslagkaarten van de groep bij een
                               diploma, in een afgeschermde map. Lezen mag elk lid,
                               uploaden alleen de leiding
+    029-aftekenen-met-moment.sql
+                              aftekenen met het moment erbij, voor wat op het
+                              water gebeurde en pas later verstuurd wordt
 
 `010-eisen.sql` draait **als laatste**, ook al is zijn nummer lager. De catalogus
 hangt aan elke schemawijziging die erna genummerd is, dus hij wordt steeds
