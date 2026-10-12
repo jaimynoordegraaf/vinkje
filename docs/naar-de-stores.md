@@ -109,6 +109,76 @@ Geen van deze kan Claude invullen, en zonder deze kun je niet insturen.
       Google wil daarnaast een webadres. Het privacybeleid beschrijft beide —
       verwijs daarnaar.
 
+## Wat de app werkelijk verzamelt
+
+Nagekeken op 2026-10-12, zodat de formulieren hierboven op feiten rusten en niet
+op aannames.
+
+**De app vraagt nergens toestemming voor.** Geen camera, foto's, locatie,
+contacten of meldingen — `app.json` zet geen enkele permissie en in `src/`
+staat geen aanroep die erom vraagt. Er zit ook geen analytics-, advertentie- of
+trackingbibliotheek in `package.json`.
+
+Wat er wél wordt vastgelegd:
+
+| Wat | Van wie | Waarvoor |
+|---|---|---|
+| Naam | iedereen in het register | de vaarder herkennen op een aftekenlijst |
+| E-mailadres | alleen wie een account heeft | inloggen |
+| Gebruikers-id | alleen wie een account heeft | koppelen van account aan persoon |
+| Afgetekende eisen, met datum, naam van de instructeur en een notitie | vaarders | de vorderingenstaat zelf |
+| Bij een examen: een opgegeven naam en de gegeven antwoorden | deelnemers, ook zonder account | nakijken en de uitslag |
+
+### Apple — App Privacy
+
+Alles hieronder is **linked to the user** en **niet** gebruikt voor tracking.
+
+- Contact Info → **Name** — App Functionality
+- Contact Info → **Email Address** — App Functionality
+- Identifiers → **User ID** — App Functionality
+- User Content → **Other User Content** — App Functionality (de aftekeningen,
+  notities en examenantwoorden)
+- Alle overige categorieën: **No**
+- "Do you or your third-party partners use data for tracking purposes?" → **No**
+
+### Google — Data Safety
+
+De labels in die console schuiven weleens, dus match op de inhoud:
+
+- Naam en e-mailadres: **verzameld**, niet gedeeld, **vereist** (geen keuze),
+  voor accountbeheer en app-functionaliteit
+- De aftekeningen en examenantwoorden: door de gebruiker gemaakte inhoud,
+  verzameld, niet gedeeld
+- **Versleuteld onderweg**: ja (alles gaat over HTTPS naar Supabase)
+- **Kan een gebruiker verwijdering vragen**: ja — in de app via
+  Meer › Mijn gegevens, en per mail; het privacybeleid beschrijft beide
+- Niet gedeeld met derden, niet gebruikt voor advertenties
+
+### Leeftijd en doelgroep
+
+Apple: **4+**. Er staat niets in dat om een hogere grens vraagt.
+
+Google's contentclassificatie: alles "nee" — geen geweld, geen aankopen, geen
+gebruikersinteractie van het soort waar die vraag op doelt.
+
+**Google's "Doelgroep en inhoud" is de vraag om over na te denken.** Zeg je dat
+de app (mede) bedoeld is voor kinderen onder de 13, dan geldt het
+Families-beleid met extra eisen en een strengere beoordeling.
+
+De feiten om die keuze op te baseren:
+
+- De app is gebouwd voor instructeurs. Sinds 015 hoeft een vaarder **geen
+  account** te hebben: zijn naam staat in het register en een instructeur tekent
+  af. Dat is de normale gang van zaken.
+- Een lid *kan* een account krijgen, met een uitnodigingscode. Doe je dat bij
+  kinderen onder de 13, dan is het antwoord een ander.
+- De app bevat wél gegevens *over* kinderen. Dat is iets anders dan de vraag die
+  Google hier stelt — dat gaat over wie de app gebruikt — maar het is wel waarom
+  het privacybeleid bestaat.
+
+Dit is geen vraag waar een goed en een fout antwoord op bestaat zonder te weten
+wat jullie van plan zijn met de accounts. Bepaal dat eerst, antwoord dan.
+
 ## Buiten de winkels, maar vóór je publiek gaat
 
 - [ ] **J** **Back-ups van Supabase.** Zodra dit productie is staan er
