@@ -11,6 +11,26 @@ Wie wat doet staat erbij. **J** is Jaimy, **C** is Claude.
 
 ---
 
+## Apple vraagt extra uitleg bij een nieuw account
+
+Streepje kreeg die vraag al, dus Vinkje krijgt hem vrijwel zeker ook: zelfde
+ontwikkelaarsaccount. Zes vragen, plus een schermopname op een echt toestel.
+De antwoorden staan klaar in [app-store.md](app-store.md) onder "De zes vragen
+van App Review". Vul ze meteen in het Notes-veld in, dan is de kans groot dat
+die ronde je bespaard blijft.
+
+- [ ] **J** Schermopname maken op een iPhone: starten, inloggen, aftekenen, een
+      bak, een diploma, en **account verwijderen** laten zien. De route staat in
+      app-store.md.
+- [ ] **J** De zes antwoorden in het Notes-veld zetten.
+- [ ] **J** **Toestemming regelen voor het materiaal van anderen** — de
+      toelichtingen uit de handboeken en de examenvragen. Apple vraagt hier
+      letterlijk om (punt 6). Zie app-store.md.
+- [x] De formulering "internal tool" is uit de review notes gehaald: dat nodigt
+      richtlijn 3.2 uit, en het klopte niet — elke groep kan zich aanmelden.
+- [ ] **J** Bij Apple de titelkaart (00.png) **niet** uploaden. Richtlijn 2.3.3
+      wil de app in gebruik zien, geen title art. Bij Google mag hij blijven.
+
 ## Eerst: is 1.0.0 klaar om te bouwen?
 
 - [x] **J** Het offline werken is getest op **beide** telefoons: klaarzetten op
