@@ -96,9 +96,8 @@ Geen van deze kan Claude invullen, en zonder deze kun je niet insturen.
 
 - [ ] Data Safety
 - [ ] Contentclassificatie
-- [ ] Doelgroep en inhoud — **let op, hier zit een strik:** zeg je dat de app
-      (mede) voor kinderen onder de 13 is, dan geldt het Families-beleid met
-      extra eisen. Vinkje wordt gebruikt dóór jeugd, dus lees die vraag goed.
+- [x] Doelgroep en inhoud: **13 jaar en ouder**. Onderbouwing en de afspraak
+      die daarbij hoort staan hieronder onder "Leeftijd en doelgroep".
 - [ ] Verklaring over advertenties: die zijn er niet
 
 ### Allebei
@@ -176,8 +175,22 @@ De feiten om die keuze op te baseren:
   Google hier stelt — dat gaat over wie de app gebruikt — maar het is wel waarom
   het privacybeleid bestaat.
 
-Dit is geen vraag waar een goed en een fout antwoord op bestaat zonder te weten
-wat jullie van plan zijn met de accounts. Bepaal dat eerst, antwoord dan.
+**Besloten op 2026-10-12: 13 jaar en ouder.** Vaarders krijgen geen eigen
+account; hun naam staat in het register en een instructeur tekent af. De app
+richt zich daarmee op instructeurs, niet op kinderen.
+
+Let op wat dat antwoord wél en niet betekent. 13+ zegt niet dat geen enkele
+vaarder ooit een account mag; het zegt dat de app zich niet op kinderen onder de
+13 richt. Een vaarder van vijftien met een eigen account past daar binnen.
+
+**De grens die bewaakt moet worden is dus: geen uitnodigingscode aan iemand
+onder de 13.** Dat staat niet in de code — het uitnodigingsscherm biedt gewoon
+de rol "lid" aan, en dat is met opzet, want een oudere vaarder of een
+hulpinstructeur hoort die wel te kunnen krijgen. Het is een afspraak, en de
+verklaring aan Google klopt alleen zolang die afspraak staat.
+
+Verandert dat ooit — gaan de jongste vaarders toch inloggen — dan moet de
+doelgroep in de Play Console mee, en geldt het Families-beleid alsnog.
 
 ## Buiten de winkels, maar vóór je publiek gaat
 
