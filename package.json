@@ -19,6 +19,7 @@
     "icons": "node scripts/icons.mjs",
     "feature-graphic": "node scripts/feature-graphic.mjs",
     "screenshots": "node scripts/store-screenshots.mjs",
+    "titelkaart": "node scripts/titelkaart.mjs",
     "handleiding": "node scripts/handleiding-pdf.mjs docs/handleiding.html docs/handleiding-print.html",
     "examen": "node admin/serve.mjs examen",
     "examen:build": "node admin/build.mjs examen",
