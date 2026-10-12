@@ -178,6 +178,9 @@
   .part input { flex: 1; }
   .num { width: 62px; flex: none; }
   #signin, #join, #newpass { max-width: 380px; margin: 12vh auto; }
+  #groepkiezer {
+    width: auto; padding: 6px 10px; font-size: 13px; margin-left: 10px;
+  }
   .hidden { display: none !important; }
 </style>
 </head>
@@ -255,6 +258,7 @@
       <button data-tab="examens">Examens</button>
     </nav>
     <span class="who" id="who"></span>
+    <select id="groepkiezer" class="hidden" title="Welke groep je beheert"></select>
     <button class="btn ghost" id="signout">Uitloggen</button>
   </header>
   <!-- Buiten #view, want dat wordt bij elke render leeggegooid en dan zou een
@@ -298,6 +302,7 @@ const db = cfg.url && cfg.key ? window.supabase.createClient(cfg.url, cfg.key) :
 
 let me = null;       // { id, name, email }
 let group = null;    // { id, name } — de groep waar je beheerder van bent
+const GROEP_SLEUTEL = 'vinkje:beheer:groep';
 let tab = 'leden';
 
 // ---------------------------------------------------------------- helpers
@@ -594,7 +599,19 @@ async function start() {
     return;
   }
 
-  const admin = rows.find((r) => r.role === 'beheerder');
+  // Alle groepen waar je beheerder van bent, op naam gesorteerd.
+  //
+  // Hiervoor stond hier rows.find(...), en dat pakte de eerste die de database
+  // toevallig teruggaf. Een select zonder order by heeft geen vaste volgorde,
+  // dus met twee groepen kon deze pagina de ene keer de echte groep tonen en de
+  // andere keer een demogroep -- zonder dat er iets wisselde in beeld. Op een
+  // scherm met knoppen die gegevens wissen is dat geen schoonheidsfoutje.
+  const mijnGroepen = rows
+    .filter((r) => r.role === 'beheerder' && r.groups)
+    .map((r) => ({ id: r.groups.id, name: r.groups.name }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'nl'));
+
+  const admin = mijnGroepen.length > 0 ? { groups: mijnGroepen[0] } : null;
   if (!admin) {
     const waar = rows[0].groups?.name ?? 'je groep';
     document.getElementById('join').classList.add('hidden');
@@ -608,11 +625,33 @@ async function start() {
   }
 
   document.getElementById('join').classList.add('hidden');
-  group = { id: admin.groups.id, name: admin.groups.name };
+
+  // Welke groep je het laatst beheerde. Blijft staan tussen bezoeken, zodat je
+  // niet elke keer opnieuw moet kiezen -- en zodat het niet stilletjes verschuift.
+  const bewaard = localStorage.getItem(GROEP_SLEUTEL);
+  group = mijnGroepen.find((g) => g.id === bewaard) ?? mijnGroepen[0];
+
+  const kiezer = document.getElementById('groepkiezer');
+  if (mijnGroepen.length > 1) {
+    kiezer.innerHTML = '';
+    for (const g of mijnGroepen) {
+      kiezer.append(el('option', { value: g.id, selected: g.id === group.id }, g.name));
+    }
+    kiezer.classList.remove('hidden');
+    kiezer.onchange = () => {
+      localStorage.setItem(GROEP_SLEUTEL, kiezer.value);
+      // Opnieuw laden in plaats van alleen render(): elk scherm heeft gegevens
+      // van de oude groep in zijn geheugen staan, en half verversen is erger
+      // dan opnieuw beginnen.
+      location.reload();
+    };
+  }
 
   document.getElementById('signin').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
-  document.getElementById('who').textContent = `${me.name || me.email} · ${group.name}`;
+  // Bij één groep de naam in de kop; bij meer staat hij in de kiezer ernaast.
+  document.getElementById('who').textContent =
+    mijnGroepen.length > 1 ? (me.name || me.email) : `${me.name || me.email} · ${group.name}`;
   render();
 }
 
