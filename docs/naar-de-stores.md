@@ -19,9 +19,9 @@ De antwoorden staan klaar in [app-store.md](app-store.md) onder "De zes vragen
 van App Review". Vul ze meteen in het Notes-veld in, dan is de kans groot dat
 die ronde je bespaard blijft.
 
-- [ ] **J** Schermopname maken op een iPhone: starten, inloggen, aftekenen, een
-      bak, een diploma, en **account verwijderen** laten zien. De route staat in
-      app-store.md.
+- [x] **J** Schermopname gemaakt op een iPhone. Gaat in App Store Connect naar
+      **App Review Information → Attachment** — er is nog geen gespreksdraad om
+      in te antwoorden, want er is nog niets ingestuurd.
 - [ ] **J** De zes antwoorden in het Notes-veld zetten.
 - [ ] **J** **Toestemming regelen voor het materiaal van anderen** — de
       toelichtingen uit de handboeken en de examenvragen. Apple vraagt hier
