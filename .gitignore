@@ -27,3 +27,8 @@ examens-import/
 signing/
 android/
 ios/
+
+# Databasekopieen: namen, mailadressen en aftekeningen. Nooit in de repo.
+vinkje-backups/
+*.sql.gz
+backups/

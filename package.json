@@ -11,6 +11,7 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test:db": "node supabase/test/policies.mjs",
+    "backup": "node scripts/backup.mjs",
     "test:netwerk": "node scripts/netwerk-check.mjs",
     "export:android": "expo export --platform android",
     "export:ios": "expo export --platform ios",
