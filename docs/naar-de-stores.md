@@ -64,8 +64,11 @@ Laat de demogroep staan zolang de review loopt. Daarna opruimen met
 
 ## Materiaal voor de winkelpagina
 
-- [ ] **J** Listingtekst plakken uit [play-store.md](play-store.md): naam,
+- [ ] **J** Google: listingtekst uit [play-store.md](play-store.md) — naam,
       korte omschrijving, volledige omschrijving. Platte tekst, geen opmaak.
+- [ ] **J** Apple: naam, subtitel, promotionele tekst, trefwoorden en
+      beschrijving uit [app-store.md](app-store.md). Andere velden en andere
+      limieten dan bij Google, dus het is een eigen tekst.
 - [ ] **J** Naam **Vinkje** in beide consoles.
 - [ ] **J** Feature graphic (`assets/store/feature-graphic.png`) in Play.
 - [ ] **J** Apple creative assets (optioneel, sinds oktober 2026). Alle drie in
