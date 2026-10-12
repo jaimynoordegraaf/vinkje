@@ -68,11 +68,11 @@ Laat de demogroep staan zolang de review loopt. Daarna opruimen met
       korte omschrijving, volledige omschrijving. Platte tekst, geen opmaak.
 - [ ] **J** Naam **Vinkje** in beide consoles.
 - [ ] **J** Feature graphic (`assets/store/feature-graphic.png`) in Play.
-- [x] Android-screenshots staan klaar in `store/screenshots/out/android/`.
-- [ ] **J+C** **iOS-screenshots ontbreken.** Apple wil minstens een set voor de
-      6,7-inch iPhone. `store/screenshots/raw/` is leeg, dus er moeten nieuwe
-      opnamen gemaakt worden op een iPhone; `npm run screenshots` snijdt ze
-      daarna op maat.
+- [x] Android-screenshots in `store/screenshots/out/android/`. Van 21 september,
+      uit de demogroep, lichte modus. Van die zes schermen is in 1.0.0 niets
+      veranderd, dus ze kloppen nog.
+- [x] **iOS-screenshots klaar** in `store/screenshots/out/iphone/`, zes stuks op
+      1320x2868, uit de demogroep en in donkere modus.
 - [x] **Besloten: geen iPad.** `supportsTablet` staat op `false`, dus Apple
       vraagt geen iPad-screenshots. De app is nog steeds op een iPad te
       installeren en draait daar in iPhone-formaat. Later alsnog aanzetten kan,
