@@ -54,7 +54,10 @@ en Google vraagt hetzelfde.
       hebben weggegooid en de screenshots ongeldig gemaakt.
 - [ ] **J** Zelf één keer inloggen met dat account om te zien dat het werkt.
 - [ ] **J** De gegevens invullen bij **App Review Information** (Apple) en
-      **App access** (Google).
+      **App access** (Google). De begeleidende tekst staat klaar: de review
+      notes in [app-store.md](app-store.md), de instructies voor Google in
+      [play-store.md](play-store.md). Allebei in het Engels — de beoordelaar
+      leest geen Nederlands. Vul in de Apple-tekst nog je mailadres in.
 
 **Zet de beoordelaar niet in de echte groep.** Dan kijkt een vreemde naar namen
 en vorderingen van jullie jeugd. Daar is die demogroep voor.

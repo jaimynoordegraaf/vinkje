@@ -127,3 +127,56 @@ app.
     Marketing URL    laat leeg, of dezelfde
     Privacybeleid    https://scoutingjwf.nl/privacybeleid-vinkje/
     Copyright        2026 Scouting Jan Willem Friso
+
+## App Review Notes
+
+In het Engels, want de beoordelaar is dat. Hou het kort: dit wordt gescand, niet
+gelezen. Alles wat erin staat is er omdat het anders een vraag of een afwijzing
+oplevert.
+
+    Vinkje is an internal tool for a Dutch Scouting group — a volunteer youth
+    sailing club. Instructors record, per requirement, what a young sailor can
+    do towards a national watersport certificate.
+
+    SIGNING IN
+    Please use the demo account in the App Review Information fields above. It
+    belongs to a demo group with fictional members, so you are not looking at
+    real children's data.
+
+    If you create your own account instead, it belongs to no group yet and the
+    app shows a welcome screen offering "start a group" or "join with a code".
+    That is expected behaviour, but you will not see the app in use. The demo
+    account shows the real thing.
+
+    LANGUAGE
+    Dutch only. The app is used by Scouting groups in the Netherlands.
+    The five tabs are: sailors, on the water, my certificates, certificates,
+    and more.
+
+    ACCOUNT DELETION
+    In the app: Meer › Mijn gegevens › Account verwijderen.
+    (More › My details › Delete account.)
+
+    WORKS WITHOUT A CONNECTION
+    The app is meant for use on the water, where there is no signal. In
+    airplane mode it keeps working on data it stored earlier and shows an
+    orange bar at the top. Sign-offs made offline are sent once a connection
+    returns.
+
+    NO PAYMENTS, NO ADS, NO TRACKING
+    There are no purchases or subscriptions, no advertising, and no
+    third-party analytics or tracking SDKs.
+
+    EXAMS
+    People taking an exam do not need an account. They open a web page with a
+    session code; that part is outside the app.
+
+    Questions: <vul je mailadres in>
+
+### Wat hier met opzet níét in staat
+
+- Geen uitleg over elk scherm. Een beoordelaar loopt de app zelf door; een
+  lange rondleiding wordt overgeslagen en verbergt de twee regels die er wel
+  toe doen.
+- Geen excuses of toelichting waarom iets nog niet af is. Dat nodigt uit tot
+  zoeken.

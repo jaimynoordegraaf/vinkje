@@ -97,3 +97,20 @@ Vinkje is gebouwd door en voor Scouting Jan Willem Friso en vrij te gebruiken
 door andere groepen. Het is geen uitgave van Scouting Nederland of de Watersport
 Academy, en niet door hen goedgekeurd. De eisen zijn overgenomen uit de openbare
 Handboeken Opleidingen; bij twijfel geldt het handboek, niet deze app.
+
+## App access — instructies voor de beoordelaar
+
+Google heeft hier een eigen veld voor, los van de storeteksten. Ook in het
+Engels, en korter dan bij Apple: dit veld is bedoeld om binnen te komen, niet
+om de app uit te leggen.
+
+    All functionality requires a login.
+
+    Use the credentials provided. The account belongs to a demo group with
+    fictional members, so no real personal data is shown.
+
+    The app is in Dutch. It is a tool for instructors at a Dutch Scouting
+    group to record which requirements a young sailor has completed towards a
+    national watersport certificate.
+
+    Account deletion is in the app: Meer › Mijn gegevens › Account verwijderen.
