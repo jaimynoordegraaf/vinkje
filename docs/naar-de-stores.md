@@ -95,7 +95,7 @@ Laat de demogroep staan zolang de review loopt. Daarna opruimen met
       limieten dan bij Google, dus het is een eigen tekst.
 - [ ] **J** Naam **Vinkje** in beide consoles.
 - [ ] **J** Feature graphic (`assets/store/feature-graphic.png`) in Play.
-- [ ] **J** Apple creative assets (optioneel, sinds oktober 2026). Alle drie in
+- [x] **J** Apple creative assets (optioneel, sinds oktober 2026). Alle drie in
       `assets/store/`, zonder alfakanaal zoals Apple eist:
       `apple-header-3840x1646.png` voor de kop van de productpagina,
       `apple-zoek-3840x2560.png` voor de zoekresultaten, en
@@ -254,4 +254,4 @@ doelgroep in de Play Console mee, en geldt het Families-beleid alsnog.
 - [ ] **J** Demogroep opruimen (`supabase/demo/demo-opruimen.sql`).
 - [ ] **J** Het reviewaccount laten staan — bij elke volgende versie vraagt
       Apple er weer om.
-- [ ] **C** Een git-tag `v1.0.0` zetten op de commit waar de build van kwam.
+- [x] **C** Git-tag `v1.0.0` staat op 08914ec, de commit waar de iOS-build van kwam.
