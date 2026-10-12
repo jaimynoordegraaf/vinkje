@@ -251,7 +251,7 @@ doelgroep in de Play Console mee, en geldt het Families-beleid alsnog.
 
 ## Terwijl de review loopt
 
-**Ingestuurd bij Apple op 2026-10-12**, versie 1.0.0.
+**Ingestuurd op 2026-10-12**, versie 1.0.0 — bij Apple en bij Google.
 
 - **Geen OTA-updates naar het productiekanaal.** Een update die het gedrag
   verandert terwijl Apple naar de binary kijkt, kan uitgelegd worden als het
