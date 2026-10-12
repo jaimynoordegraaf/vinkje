@@ -262,6 +262,47 @@ doelgroep in de Play Console mee, en geldt het Families-beleid alsnog.
   [app-store.md](app-store.md). Antwoorden gaat via de Resolution Center-draad
   die er dan wél is.
 
+## R8 aanzetten — vóór februari 2027
+
+Play Console meldt dat de optimalisatie onder hun drempel zit. Dat klopt:
+gemeten op de bundel van 1.0.0 zit er **44 MB aan DEX-code** in, en Google eist
+minstens 25% optimalisatie zodra dat boven de 10 MB komt. De datum is februari
+2027.
+
+**Niet blokkerend voor 1.0.0.** Dit is een melding, geen weigering; publiceren
+kan gewoon. Maar het gaat niet vanzelf weg, en februari is ver genoeg om het te
+vergeten.
+
+### Waarom het nu uit staat
+
+R8 verkleint de app door ongebruikte code weg te gooien en namen in te korten.
+Bij React Native is dat niet gratis: het framework zoekt klassen op via
+reflectie, en wat R8 niet ziet gebruikt worden gooit hij weg. Dat merk je niet
+bij het bouwen maar pas als een scherm in de productieversie leeg blijft. Daarom
+staat het uit, en daarom staat die waarschuwing ook in
+`scripts/android-lokaal.mjs`.
+
+Dat is een reden om het zorgvuldig te doen, niet om het niet te doen. En het
+levert meer op dan alleen de melding: 44 MB DEX is veel, en R8 haalt daar flink
+vanaf — dat is een kleinere download voor iedereen.
+
+### Wat ervoor nodig is
+
+- [ ] **C** `expo-build-properties` toevoegen (zit er nog niet in) en in
+      `app.json` `enableProguardInReleaseBuilds` en
+      `enableShrinkResourcesInReleaseBuilds` aanzetten voor Android.
+- [ ] **C** Een proefbuild met het `preview`-profiel, zodat er een APK is om op
+      een echte telefoon te zetten.
+- [ ] **J** Die APK **helemaal doorlopen** op een toestel. Niet "hij start" maar:
+      inloggen, een aftekenlijst openen, aftekenen, een bak, de examens, het
+      lesmateriaal, offline gaan en terugkomen. Juist de schermen die zelden
+      open gaan zijn waar R8 iets heeft weggegooid.
+- [ ] **C** Daarna pas de productiebuild, en in Play Console nakijken dat het
+      percentage boven de 25 uitkomt.
+
+Doe dit aan het begin van 1.1.0, niet er tussendoor. Een app die stilletjes
+halve schermen mist is erger dan een melding in de console.
+
 ## Na goedkeuring
 
 - [ ] **J** Demogroep opruimen (`supabase/demo/demo-opruimen.sql`).
