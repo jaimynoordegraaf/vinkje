@@ -45,13 +45,13 @@ Vinkje begint met een inlogscherm, dus een beoordelaar komt er niet in zonder
 account. Dat is bij Apple de meest voorkomende afwijzingsgrond (richtlijn 2.1)
 en Google vraagt hetzelfde.
 
-- [ ] **J** Een apart account maken, bijvoorbeeld `review@scoutingjwf.nl`, en
+- [x] **J** Een apart account maken, bijvoorbeeld `review@scoutingjwf.nl`, en
       het **e-mailadres bevestigen** — "Confirm email" staat aan, dus een
       onbevestigd account kan niet inloggen.
-- [ ] **J** `supabase/demo/demo-groep.sql` draaien terwijl je met dát account
-      bent ingelogd. Dat maakt "Scouting De Waterlanders" met verzonnen
-      vaarders, bakken en geloofwaardige voortgang, en maakt de beller
-      beheerder.
+- [x] **J** De demogroep "Scouting De Waterlanders" bestond al van de
+      screenshots. Het reviewaccount is er met een uitnodigingscode bij gekomen,
+      zodat `demo-groep.sql` niet opnieuw hoefde te draaien — dat zou de groep
+      hebben weggegooid en de screenshots ongeldig gemaakt.
 - [ ] **J** Zelf één keer inloggen met dat account om te zien dat het werkt.
 - [ ] **J** De gegevens invullen bij **App Review Information** (Apple) en
       **App access** (Google).
