@@ -239,7 +239,7 @@ doelgroep in de Play Console mee, en geldt het Families-beleid alsnog.
       vorderingen van echte kinderen in. Kijk wat jullie plan aan back-ups
       geeft; op het gratis plan is dat mager en pauzeert een project bovendien
       bij inactiviteit.
-- [ ] **J** **SMTP-afzendernaam** op "Scouting JWF Vinkje". Een bevestigingsmail
+- [x] **J** **SMTP-afzendernaam** op "Scouting JWF Vinkje". Een bevestigingsmail
       van "Supabase Auth" aan een ouder is niet wat je wil.
 - [ ] **J** **De lesboeken van Sint Maarten Hoofddorp.** Staat die toestemming
       er nog niet, zorg dan dat er niets van hen in het lesmateriaal staat op
