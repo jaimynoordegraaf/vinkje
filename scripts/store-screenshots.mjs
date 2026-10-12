@@ -40,9 +40,21 @@ const themes = {
   dark: { bg: INK, caption: '#FFFFFF', shadow: '#000000' },
 };
 
-/** Wat elke winkel wil, in pixels. */
+/**
+ * Wat elke winkel wil, in pixels.
+ *
+ * Apple vraagt per formaatslot vaste maten, en die veranderen. Het slot dat App
+ * Store Connect nu als eerste toont is 6,1/6,3 inch: 1179x2556 of 1206x2622.
+ * De eerste is hier gekozen omdat de verhouding (2,1680) vrijwel gelijk is aan
+ * die van een opname op een 6,7-inch toestel (2,1674) -- verkleinen zonder
+ * bijsnijden.
+ *
+ * Met `bron` leest een maat uit de raw-map van een ander toestel. Zo vullen
+ * dezelfde zes opnamen allebei de sloten, zonder ze twee keer te maken.
+ */
 const devices = {
-  iphone: { width: 1320, height: 2868 },
+  iphone: { width: 1179, height: 2556 },
+  "iphone-69": { width: 1320, height: 2868, bron: "iphone" },
   ipad: { width: 2064, height: 2752 },
   android: { width: 1080, height: 1920 },
 };
@@ -155,7 +167,7 @@ async function compose(device, file) {
 
 let made = 0;
 for (const device of wanted) {
-  const dir = path.join(rawRoot, device);
+  const dir = path.join(rawRoot, devices[device].bron ?? device);
   if (!fs.existsSync(dir)) {
     console.log(`(overgeslagen) geen map ${path.relative(repo, dir)}`);
     continue;

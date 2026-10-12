@@ -25,7 +25,8 @@
  */
 
 import { Resvg } from '@resvg/resvg-js';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import sharp from 'sharp';
+import { existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -40,9 +41,14 @@ for (const f of [axis, segoe]) {
 
 const INK = '#161616';
 
-/** Dezelfde maten als store-screenshots.mjs. */
+/**
+ * Alleen Android.
+ *
+ * Bij Apple niet gebruiken: richtlijn 2.3.3 wil screenshots die de app in
+ * gebruik tonen, "not merely the title art, login page, or splash screen".
+ * Een titelkaart is precies dat. Bij Google speelt die regel niet.
+ */
 const devices = {
-  iphone: { width: 1320, height: 2868 },
   android: { width: 1080, height: 1920 },
 };
 
@@ -104,7 +110,9 @@ for (const [naam, { width, height }] of Object.entries(devices)) {
   const dir = join(root, 'store/screenshots/out', naam);
   mkdirSync(dir, { recursive: true });
   const uit = join(dir, '00.png');
-  writeFileSync(uit, img.asPng());
+  // Zonder alfakanaal. Play is er soepel in, maar een screenshot met
+  // transparantie is nergens goed en Apple weigert hem ronduit.
+  await sharp(img.asPng()).flatten({ background: "#1E8CCA" }).png().toFile(uit);
   console.log(`${naam.padEnd(8)} ${width}x${height}  00.png`);
 }
 

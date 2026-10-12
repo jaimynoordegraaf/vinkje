@@ -28,8 +28,9 @@ die ronde je bespaard blijft.
       letterlijk om (punt 6). Zie app-store.md.
 - [x] De formulering "internal tool" is uit de review notes gehaald: dat nodigt
       richtlijn 3.2 uit, en het klopte niet — elke groep kan zich aanmelden.
-- [ ] **J** Bij Apple de titelkaart (00.png) **niet** uploaden. Richtlijn 2.3.3
-      wil de app in gebruik zien, geen title art. Bij Google mag hij blijven.
+- [x] De titelkaart wordt niet meer voor Apple gemaakt — richtlijn 2.3.3 wil de
+      app in gebruik zien, geen title art. `npm run titelkaart` maakt nu alleen
+      de Android-versie, en zonder alfakanaal.
 
 ## Eerst: is 1.0.0 klaar om te bouwen?
 
@@ -104,8 +105,11 @@ Laat de demogroep staan zolang de review loopt. Daarna opruimen met
 - [x] Android-screenshots in `store/screenshots/out/android/`. Van 21 september,
       uit de demogroep, lichte modus. Van die zes schermen is in 1.0.0 niets
       veranderd, dus ze kloppen nog.
-- [x] **iOS-screenshots klaar** in `store/screenshots/out/iphone/`, zes stuks op
-      1320x2868, uit de demogroep en in donkere modus.
+- [x] **iOS-screenshots klaar.** Apple vraagt per formaatslot vaste maten en
+      die zijn veranderd; het slot dat App Store Connect nu toont is 6,1/6,3
+      inch. `out/iphone/` staat op **1179x2556**, wat in hun lijst staat.
+      `out/iphone-69/` heeft dezelfde zes op 1320x2868 voor het 6,9-inch slot,
+      uit dezelfde opnamen. Zes stuks, uit de demogroep, donkere modus.
 - [x] **Besloten: geen iPad.** `supportsTablet` staat op `false`, dus Apple
       vraagt geen iPad-screenshots. De app is nog steeds op een iPad te
       installeren en draait daar in iPhone-formaat. Later alsnog aanzetten kan,
