@@ -68,6 +68,13 @@ Laat de demogroep staan zolang de review loopt. Daarna opruimen met
       korte omschrijving, volledige omschrijving. Platte tekst, geen opmaak.
 - [ ] **J** Naam **Vinkje** in beide consoles.
 - [ ] **J** Feature graphic (`assets/store/feature-graphic.png`) in Play.
+- [ ] **J** Apple creative assets (optioneel, sinds oktober 2026). Alle drie in
+      `assets/store/`, zonder alfakanaal zoals Apple eist:
+      `apple-header-3840x1646.png` voor de kop van de productpagina,
+      `apple-zoek-3840x2560.png` voor de zoekresultaten, en
+      `apple-universeel-5244x2950.png` als je er één wilt die voor allebei dient
+      — die moet dan wel png zijn, jpeg mag daar niet.
+      Opnieuw maken: `npm run apple-assets`.
 - [x] Android-screenshots in `store/screenshots/out/android/`. Van 21 september,
       uit de demogroep, lichte modus. Van die zes schermen is in 1.0.0 niets
       veranderd, dus ze kloppen nog.
