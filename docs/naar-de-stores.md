@@ -102,7 +102,11 @@ Geen van deze kan Claude invullen, en zonder deze kun je niet insturen.
 
 ### Allebei
 
-- [ ] Privacybeleid-URL: <https://scoutingjwf.nl/privacybeleid-vinkje/>
+- [x] Privacybeleid-URL: <https://scoutingjwf.nl/privacybeleid-vinkje/> — in
+      beide consoles ingevuld. Let op: het oude adres
+      `/privacybeleid-aftekenboek/` verwijst **niet** door en geeft 404 zodra de
+      cache verloopt. Staat het ergens anders nog (een mail aan ouders), zet er
+      dan een omleiding op.
 - [ ] Route om je account te laten verwijderen. In de app kan het al
       (Meer › Mijn gegevens › Account verwijderen) en dat is wat Apple eist;
       Google wil daarnaast een webadres. Het privacybeleid beschrijft beide —
