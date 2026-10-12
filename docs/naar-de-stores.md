@@ -1,0 +1,129 @@
+# Vinkje 1.0.0 naar de stores
+
+Afvinklijst voor de eerste publieke release. Opgesteld 2026-10-12.
+
+De volgorde is niet willekeurig: wat bovenaan staat houdt de rest tegen. Bouw
+niet voordat het offline werken getest is, en stuur niet in voordat er een
+testaccount klaarstaat — dan loop je een reviewronde van een week mis om iets
+wat je in tien minuten had kunnen regelen.
+
+Wie wat doet staat erbij. **J** is Jaimy, **C** is Claude.
+
+---
+
+## Eerst: is 1.0.0 klaar om te bouwen?
+
+- [ ] **J** Het offline werken is getest op **beide** telefoons: klaarzetten op
+      wifi, vliegtuigstand, een eis openen per bak, aftekenen, verbinding terug,
+      aftekening komt aan.
+- [ ] **J** De beheerpagina is nagelopen met echte gegevens: Voortgang, Examens,
+      Diploma's en eisen, Lesmateriaal.
+- [ ] **C** `npm run test:db`, `npm run test:netwerk`, `npm run typecheck` en
+      beide bundels (`expo export`) groen.
+
+Pas als dit staat heeft bouwen zin: een build duurt een uur en een afgekeurde
+inzending kost een week.
+
+## De build
+
+- [x] **C** Versie op **1.0.0** in `app.json` en `package.json`.
+- [ ] **C** `eas build -p android --profile production` en
+      `eas build -p ios --profile production`.
+- [ ] **C** De Android-build krijgt automatisch een hoger versionCode dan 4.
+
+Let op: `runtimeVersion` volgt de appVersion, dus 1.0.0 krijgt een eigen
+OTA-lijn. Je huidige testers zitten op 0.3.0 en krijgen die updates niet meer —
+die moeten de nieuwe build installeren.
+
+## Het testaccount — dit is de valkuil
+
+Vinkje begint met een inlogscherm, dus een beoordelaar komt er niet in zonder
+account. Dat is bij Apple de meest voorkomende afwijzingsgrond (richtlijn 2.1)
+en Google vraagt hetzelfde.
+
+- [ ] **J** Een apart account maken, bijvoorbeeld `review@scoutingjwf.nl`, en
+      het **e-mailadres bevestigen** — "Confirm email" staat aan, dus een
+      onbevestigd account kan niet inloggen.
+- [ ] **J** `supabase/demo/demo-groep.sql` draaien terwijl je met dát account
+      bent ingelogd. Dat maakt "Scouting De Waterlanders" met verzonnen
+      vaarders, bakken en geloofwaardige voortgang, en maakt de beller
+      beheerder.
+- [ ] **J** Zelf één keer inloggen met dat account om te zien dat het werkt.
+- [ ] **J** De gegevens invullen bij **App Review Information** (Apple) en
+      **App access** (Google).
+
+**Zet de beoordelaar niet in de echte groep.** Dan kijkt een vreemde naar namen
+en vorderingen van jullie jeugd. Daar is die demogroep voor.
+
+Laat de demogroep staan zolang de review loopt. Daarna opruimen met
+`supabase/demo/demo-opruimen.sql`.
+
+## Materiaal voor de winkelpagina
+
+- [ ] **J** Listingtekst plakken uit [play-store.md](play-store.md): naam,
+      korte omschrijving, volledige omschrijving. Platte tekst, geen opmaak.
+- [ ] **J** Naam **Vinkje** in beide consoles.
+- [ ] **J** Feature graphic (`assets/store/feature-graphic.png`) in Play.
+- [x] Android-screenshots staan klaar in `store/screenshots/out/android/`.
+- [ ] **J+C** **iOS-screenshots ontbreken.** Apple wil minstens een set voor de
+      6,7-inch iPhone. `store/screenshots/raw/` is leeg, dus er moeten nieuwe
+      opnamen gemaakt worden op een iPhone; `npm run screenshots` snijdt ze
+      daarna op maat.
+- [ ] **J** **Beslissen over de iPad.** `app.json` zegt
+      `"supportsTablet": true`, en dan wil Apple ook een set iPad-screenshots.
+      Heb je geen iPad om opnamen op te maken, dan zijn er twee wegen: er een
+      lenen, of `supportsTablet` op `false` zetten. Dat laatste kost een nieuwe
+      build, dus beslis het **vóór** we bouwen en niet erna.
+
+Maak die screenshots met de **demogroep**, om dezelfde reden als hierboven.
+
+## De formulieren
+
+Geen van deze kan Claude invullen, en zonder deze kun je niet insturen.
+
+### Apple
+
+- [ ] App Privacy — welke gegevens de app verzamelt en waarvoor
+- [ ] Leeftijdsclassificatie
+- [ ] Categorie
+- [ ] Exportregels: `usesNonExemptEncryption` staat al op `false` in `app.json`
+
+### Google
+
+- [ ] Data Safety
+- [ ] Contentclassificatie
+- [ ] Doelgroep en inhoud — **let op, hier zit een strik:** zeg je dat de app
+      (mede) voor kinderen onder de 13 is, dan geldt het Families-beleid met
+      extra eisen. Vinkje wordt gebruikt dóór jeugd, dus lees die vraag goed.
+- [ ] Verklaring over advertenties: die zijn er niet
+
+### Allebei
+
+- [ ] Privacybeleid-URL: <https://scoutingjwf.nl/privacybeleid-aftekenboek/>
+- [ ] Route om je account te laten verwijderen. In de app kan het al
+      (Meer › Mijn gegevens › Account verwijderen) en dat is wat Apple eist;
+      Google wil daarnaast een webadres. Het privacybeleid beschrijft beide —
+      verwijs daarnaar.
+
+## Buiten de winkels, maar vóór je publiek gaat
+
+- [ ] **J** **Back-ups van Supabase.** Zodra dit productie is staan er
+      vorderingen van echte kinderen in. Kijk wat jullie plan aan back-ups
+      geeft; op het gratis plan is dat mager en pauzeert een project bovendien
+      bij inactiviteit.
+- [ ] **J** **SMTP-afzendernaam** op "Scouting JWF Vinkje". Een bevestigingsmail
+      van "Supabase Auth" aan een ouder is niet wat je wil.
+- [ ] **J** **De lesboeken van Sint Maarten Hoofddorp.** Staat die toestemming
+      er nog niet, zorg dan dat er niets van hen in het lesmateriaal staat op
+      het moment dat de app publiek wordt. Nu is het een besloten test; straks
+      een app in de winkel.
+- [ ] **J** Nagaan of de examenvragen van de werkgroep CWO-examenvragen mogen
+      blijven staan. Ze zijn alleen zichtbaar voor wie een sessiecode heeft,
+      maar de app zelf wordt openbaar.
+
+## Na goedkeuring
+
+- [ ] **J** Demogroep opruimen (`supabase/demo/demo-opruimen.sql`).
+- [ ] **J** Het reviewaccount laten staan — bij elke volgende versie vraagt
+      Apple er weer om.
+- [ ] **C** Een git-tag `v1.0.0` zetten op de commit waar de build van kwam.
