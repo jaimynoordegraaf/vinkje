@@ -13,12 +13,12 @@ Wie wat doet staat erbij. **J** is Jaimy, **C** is Claude.
 
 ## Eerst: is 1.0.0 klaar om te bouwen?
 
-- [ ] **J** Het offline werken is getest op **beide** telefoons: klaarzetten op
+- [x] **J** Het offline werken is getest op **beide** telefoons: klaarzetten op
       wifi, vliegtuigstand, een eis openen per bak, aftekenen, verbinding terug,
       aftekening komt aan.
-- [ ] **J** De beheerpagina is nagelopen met echte gegevens: Voortgang, Examens,
+- [x] **J** De beheerpagina is nagelopen met echte gegevens: Voortgang, Examens,
       Diploma's en eisen, Lesmateriaal.
-- [ ] **C** `npm run test:db`, `npm run test:netwerk`, `npm run typecheck` en
+- [x] **C** `npm run test:db`, `npm run test:netwerk`, `npm run typecheck` en
       beide bundels (`expo export`) groen.
 
 Pas als dit staat heeft bouwen zin: een build duurt een uur en een afgekeurde
@@ -27,9 +27,9 @@ inzending kost een week.
 ## De build
 
 - [x] **C** Versie op **1.0.0** in `app.json` en `package.json`.
-- [ ] **C** `eas build -p android --profile production` en
-      `eas build -p ios --profile production`.
-- [ ] **C** De Android-build krijgt automatisch een hoger versionCode dan 4.
+- [x] **C** Android 1.0.0 gebouwd (build 07561cde).
+- [ ] **C** iOS 1.0.0 bouwen.
+- [x] **C** De Android-build krijgt automatisch een hoger versionCode dan 4.
 
 Let op: `runtimeVersion` volgt de appVersion, dus 1.0.0 krijgt een eigen
 OTA-lijn. Je huidige testers zitten op 0.3.0 en krijgen die updates niet meer —
@@ -69,11 +69,11 @@ Laat de demogroep staan zolang de review loopt. Daarna opruimen met
       6,7-inch iPhone. `store/screenshots/raw/` is leeg, dus er moeten nieuwe
       opnamen gemaakt worden op een iPhone; `npm run screenshots` snijdt ze
       daarna op maat.
-- [ ] **J** **Beslissen over de iPad.** `app.json` zegt
-      `"supportsTablet": true`, en dan wil Apple ook een set iPad-screenshots.
-      Heb je geen iPad om opnamen op te maken, dan zijn er twee wegen: er een
-      lenen, of `supportsTablet` op `false` zetten. Dat laatste kost een nieuwe
-      build, dus beslis het **vóór** we bouwen en niet erna.
+- [x] **Besloten: geen iPad.** `supportsTablet` staat op `false`, dus Apple
+      vraagt geen iPad-screenshots. De app is nog steeds op een iPad te
+      installeren en draait daar in iPhone-formaat. Later alsnog aanzetten kan,
+      maar vraagt een nieuwe build én een set screenshots — en dan wil ik de
+      schermen eerst op dat formaat zien, want daar zijn ze nooit op getest.
 
 Maak die screenshots met de **demogroep**, om dezelfde reden als hierboven.
 
