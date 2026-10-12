@@ -249,6 +249,19 @@ doelgroep in de Play Console mee, en geldt het Families-beleid alsnog.
       blijven staan. Ze zijn alleen zichtbaar voor wie een sessiecode heeft,
       maar de app zelf wordt openbaar.
 
+## Terwijl de review loopt
+
+**Ingestuurd bij Apple op 2026-10-12**, versie 1.0.0.
+
+- **Geen OTA-updates naar het productiekanaal.** Een update die het gedrag
+  verandert terwijl Apple naar de binary kijkt, kan uitgelegd worden als het
+  omzeilen van de review. Wat af is wacht tot de uitslag er is.
+- **De demogroep laten staan.** Opruimen kan pas na goedkeuring, anders logt de
+  beoordelaar in op een leeg scherm.
+- Komt Apple terug met de zes vragen, dan staan de antwoorden in
+  [app-store.md](app-store.md). Antwoorden gaat via de Resolution Center-draad
+  die er dan wél is.
+
 ## Na goedkeuring
 
 - [ ] **J** Demogroep opruimen (`supabase/demo/demo-opruimen.sql`).
