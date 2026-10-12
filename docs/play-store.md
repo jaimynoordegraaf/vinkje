@@ -114,3 +114,24 @@ om de app uit te leggen.
     national watersport certificate.
 
     Account deletion is in the app: Meer › Mijn gegevens › Account verwijderen.
+
+## Release notes (Wat is er nieuw)
+
+Google vraagt dit per release en per taal, maximaal 500 tekens. Apple heeft een
+eigen veld ("What's New in This Version"); bij een eerste versie mag daar
+hetzelfde in, al accepteert Apple daar ook gewoon "Eerste versie".
+
+Voor 1.0.0, de eerste publieke versie:
+
+    De eerste versie van Vinkje.
+
+    Teken per eis af wat een vaarder kan, met datum en naam. Zie in een oogopslag
+    wie wat nog moet doen. De complete eisenlijst van de Watersport Academy zit
+    erin, met de toelichting uit het handboek.
+
+    Werkt zonder bereik: zet thuis alles klaar, teken af op het water, en zodra
+    je weer verbinding hebt gaat het vanzelf de deur uit.
+
+Voor een volgende versie: schrijf wat er voor de gebruiker verandert, niet wat
+er in de code veranderde. "Sneller laden zonder bereik" is een release note;
+"caching van api-aanroepen" is er geen.
