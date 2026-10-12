@@ -28,7 +28,11 @@ inzending kost een week.
 
 - [x] **C** Versie op **1.0.0** in `app.json` en `package.json`.
 - [x] **C** Android 1.0.0 gebouwd (build 07561cde).
-- [ ] **C** iOS 1.0.0 bouwen.
+- [x] **C** iOS 1.0.0 gebouwd (build 52dafde8) en geüpload naar App Store
+      Connect. Dat zet hem klaar; het start de review niet.
+- [ ] **J** De Android-bundel met de hand uploaden naar de **productie**-track
+      (niet de closed test). Er is geen service-accountsleutel, dus `eas submit`
+      kan dit niet doen.
 - [x] **C** De Android-build krijgt automatisch een hoger versionCode dan 4.
 
 Let op: `runtimeVersion` volgt de appVersion, dus 1.0.0 krijgt een eigen
